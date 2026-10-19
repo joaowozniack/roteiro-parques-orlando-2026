@@ -10,7 +10,43 @@ describe('backup e recuperação do progresso', () => {
     progress.statuses.velocicoaster = 'completed'
     progress.priorities.hulk = 'optional'
     progress.order.reverse()
+    state.customTasks[activePark.id] = [{ id: 'personal-test', name: 'Levar óculos', description: 'Na mochila' }]
+    state.preparation[activePark.id] = { 'charge-phone': true, 'personal-test': true }
+    state.dining[activePark.id] = { 'frozen-butterbeer': true }
     expect(importState(exportState(state))).toEqual(state)
+  })
+  it('migra snapshots antigos sem perder progresso, prioridades ou ordem e sem mutar a origem', () => {
+    const legacy = { version: 1, parks: initialState().parks }
+    legacy.parks[activePark.id].statuses.hulk = 'completed'
+    legacy.parks[activePark.id].priorities.hulk = 'optional'
+    legacy.parks[activePark.id].order.reverse()
+    const original = structuredClone(legacy)
+    const migrated = parseState(legacy)
+    expect(migrated.parks).toEqual(legacy.parks)
+    expect(migrated.preparation[activePark.id]).toEqual({})
+    expect(migrated.dining[activePark.id]).toEqual({})
+    expect(migrated.customTasks[activePark.id]).toEqual([])
+    expect(legacy).toEqual(original)
+    expect(importState(JSON.stringify({ app: 'orlando-pocket-guide', progress: legacy }))).toEqual(migrated)
+  })
+  it('recusa tarefas pessoais inválidas, duplicadas ou que imitem tarefas oficiais', () => {
+    const state = initialState()
+    state.customTasks[activePark.id] = [{ id: 'tickets', name: 'Falsa tarefa fixa' }]
+    expect(() => parseState(state)).toThrow()
+    state.customTasks[activePark.id] = [{ id: 'personal-1', name: 'Ok' }, { id: 'personal-1', name: 'Duplicada' }]
+    expect(() => parseState(state)).toThrow()
+    state.customTasks[activePark.id] = [{ id: 'personal-1', name: ' ' }]
+    expect(() => parseState(state)).toThrow()
+  })
+  it('valida marcações de preparação e alimentação antes de restaurar um backup', () => {
+    const state = initialState()
+    state.dining[activePark.id] = { 'unknown-restaurant': true }
+    expect(() => parseState(state)).toThrow()
+    state.dining[activePark.id] = {}
+    state.preparation[activePark.id] = { 'personal-missing': true }
+    expect(() => parseState(state)).toThrow()
+    state.preparation[activePark.id] = { tickets: 'yes' as unknown as boolean }
+    expect(() => parseState(state)).toThrow()
   })
   it('recusa backups de outro aplicativo e versões incompatíveis', () => {
     expect(() => importState('{"app":"other"}')).toThrow()

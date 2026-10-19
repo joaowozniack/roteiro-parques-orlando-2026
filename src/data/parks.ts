@@ -1,4 +1,5 @@
 import type { Park, Region, ItineraryStep } from '../types'
+import { islandsDining, islandsPreparation } from './islands-extras'
 
 const region = (id: string, name: string): Region => ({ id, name })
 const regions = {
@@ -23,6 +24,7 @@ const steps: ItineraryStep[] = [
 export const UNIVERSAL_URL = 'https://www.universalorlando.com/web/en/us/landing-page/mobile-app'
 export const parks: Park[] = [
   { id: 'islands-of-adventure', name: 'Universal Islands of Adventure', shortName: 'Islands of Adventure', resort: 'Universal Orlando Resort', date: '2026-10-30', description: 'Dinossauros, magia e uma boa dose de adrenalina. Seu dia de aventura está planejado.', accent: 'teal', arrival: '08h30', opening: '09h00', closing: '20h00', officialUrl: UNIVERSAL_URL, passLabel: 'Sem Express Pass', queueAdvice: 'Single Rider quando compensar', steps,
+    preparation: islandsPreparation, dining: islandsDining,
     extras: [
       { name: 'Flight of the Hippogriff', description: 'Uma aventura complementar em Hogsmeade.' },
       { name: 'Explorar Seuss Landing', description: 'Cores e cenários para explorar com calma.' },

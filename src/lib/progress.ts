@@ -6,7 +6,15 @@ export const statusLabels: Record<StepStatus, string> = { pending: 'Pendente', c
 export function initialProgress(park: Park): ParkProgress {
   return { order: park.steps.map(s => s.id), statuses: Object.fromEntries(park.steps.map(s => [s.id, 'pending'])), priorities: Object.fromEntries(park.steps.map(s => [s.id, s.priority])) }
 }
-export function initialState(): GuideState { return { version: 1, parks: Object.fromEntries(parks.map(p => [p.id, initialProgress(p)])) } }
+export function initialState(): GuideState {
+  return {
+    version: 1,
+    parks: Object.fromEntries(parks.map(p => [p.id, initialProgress(p)])),
+    preparation: Object.fromEntries(parks.map(p => [p.id, {}])),
+    dining: Object.fromEntries(parks.map(p => [p.id, {}])),
+    customTasks: Object.fromEntries(parks.map(p => [p.id, []])),
+  }
+}
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 export function parseState(value: unknown): GuideState {
   if (!object(value) || value.version !== 1 || !object(value.parks)) throw new Error('Formato incompatível. Use um arquivo exportado por este guia (versão 1).')
@@ -26,6 +34,34 @@ export function parseState(value: unknown): GuideState {
     for (const [key, priority] of Object.entries(raw.priorities)) {
       if (!known.has(key) || typeof priority !== 'string' || !Object.hasOwn(priorityLabels, priority)) throw new Error('O arquivo contém uma prioridade inválida.')
       progress.priorities[key] = priority as Priority
+    }
+  }
+  // Additive migration: keep the original storage key and schema version. Old
+  // snapshots gain empty independent sections without changing attraction data.
+  if (value.customTasks !== undefined) {
+    if (!object(value.customTasks)) throw new Error('A lista de tarefas pessoais é inválida.')
+    for (const [parkId, tasks] of Object.entries(value.customTasks)) {
+      if (!parks.some(p => p.id === parkId) || !Array.isArray(tasks) || tasks.length > 100) throw new Error('A lista de tarefas pessoais é inválida (máximo de 100 por parque).')
+      const ids = new Set<string>()
+      result.customTasks[parkId] = tasks.map(task => {
+        if (!object(task) || typeof task.id !== 'string' || !/^personal-[a-zA-Z0-9-]{1,80}$/.test(task.id) || ids.has(task.id) || typeof task.name !== 'string' || !task.name.trim() || task.name.length > 120 || (task.description !== undefined && (typeof task.description !== 'string' || task.description.length > 240))) throw new Error('O arquivo contém uma tarefa pessoal inválida.')
+        ids.add(task.id)
+        return { id: task.id, name: task.name.trim(), ...(typeof task.description === 'string' ? { description: task.description.trim() } : {}) }
+      })
+    }
+  }
+  for (const field of ['preparation', 'dining'] as const) {
+    const raw = value[field]
+    if (raw === undefined) continue
+    if (!object(raw)) throw new Error('O arquivo contém dados de preparação ou alimentação inválidos.')
+    for (const [parkId, entries] of Object.entries(raw)) {
+      const park = parks.find(p => p.id === parkId)
+      if (!park || !object(entries)) throw new Error('O arquivo contém um parque inválido.')
+      const known = new Set(field === 'dining' ? park.dining?.map(item => item.id) : [...(park.preparation?.flatMap(group => group.tasks.map(task => task.id)) ?? []), ...result.customTasks[parkId].map(task => task.id)])
+      for (const [id, checked] of Object.entries(entries)) {
+        if (!known.has(id) || typeof checked !== 'boolean') throw new Error('O arquivo contém uma tarefa ou estabelecimento inválido.')
+        result[field][parkId][id] = checked
+      }
     }
   }
   return result
