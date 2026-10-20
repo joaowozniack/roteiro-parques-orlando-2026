@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { activePark } from '../data/parks'
-import { exportState, importState, initialState, moveStep, parseState } from './progress'
+import { exportState, importState, initialState, itinerarySummary, moveStep, parseState } from './progress'
+import { magicKingdom } from '../data/magic-kingdom'
 
 describe('backup e recuperação do progresso', () => {
   it('preserva status, prioridades e ordem em uma exportação/importação', () => {
@@ -91,5 +92,48 @@ describe('backup e recuperação do progresso', () => {
     expect(moveStep(progress, 'arrival', -1)).toBe(progress)
     expect(moveStep(progress, 'dark-arts', 1)).toBe(progress)
     expect(moveStep(progress, 'unknown', 1)).toBe(progress)
+  })
+  it('migra o checklist do Islands e preserva as tarefas pessoais e o snapshot anterior', () => {
+    const state = initialState()
+    state.preparation[activePark.id] = { 'charge-phone': true, 'tickets': true, 'personal-my-task': true, 'entrance-0830': true }
+    state.customTasks[activePark.id] = [{ id: 'personal-my-task', name: 'Levar óculos', description: 'Na mochila' }]
+    const { globalChecklist: _newField, ...legacy } = state
+    const migrated = parseState(legacy)
+    expect(migrated.globalChecklist.checked['charge-phone']).toBe(true)
+    expect(migrated.globalChecklist.checked['personal-my-task']).toBe(true)
+    expect(migrated.globalChecklist.customTasks).toEqual(state.customTasks[activePark.id])
+    expect(migrated.preparation).toEqual(state.preparation)
+    expect(migrated.parks).toEqual(state.parks)
+    // A manual reset must not resurrect the old per-park checkmarks.
+    migrated.globalChecklist.checked = {}
+    expect(parseState(migrated).globalChecklist.checked).toEqual({})
+  })
+  it('preserva o checklist geral completo em exportação/importação e recusa marcações inválidas', () => {
+    const state = initialState()
+    state.globalChecklist = { checked: { tickets: true, 'personal-1': true }, customTasks: [{ id: 'personal-1', name: 'Tarefa editada' }] }
+    expect(importState(exportState(state))).toEqual(state)
+    state.globalChecklist.checked['personal-missing'] = true
+    expect(() => parseState(state)).toThrow()
+  })
+  it('conta TRON uma vez e deixa a pausa para almoço fora do progresso', () => {
+    const state = initialState(), progress = state.parks[magicKingdom.id]
+    const original = itinerarySummary(magicKingdom, progress)
+    expect(original.total).toBe(15)
+    progress.statuses['lunch-break'] = 'completed'
+    expect(itinerarySummary(magicKingdom, progress).completed).toBe(0)
+    progress.statuses['tron-afternoon'] = 'completed'
+    expect(itinerarySummary(magicKingdom, progress).completed).toBe(1)
+    progress.statuses['tron-night'] = 'completed'
+    expect(itinerarySummary(magicKingdom, progress).completed).toBe(1)
+    for (const step of magicKingdom.steps) progress.statuses[step.id] = 'completed'
+    progress.statuses['tron-night'] = 'pending'
+    progress.statuses['lunch-break'] = 'pending'
+    expect(itinerarySummary(magicKingdom, progress)).toMatchObject({ percent: 100, nextId: undefined })
+    expect(itinerarySummary(activePark, state.parks[activePark.id]).completed).toBe(0)
+  })
+  it('mantém Starlight com horário nulo e Buzz somente nas complementares', () => {
+    expect(magicKingdom.steps.find(step => step.id === 'starlight')?.plannedTime).toBeNull()
+    expect(magicKingdom.steps.some(step => step.name.includes('Buzz'))).toBe(false)
+    expect(magicKingdom.extras.some(extra => extra.name.includes('Buzz'))).toBe(true)
   })
 })

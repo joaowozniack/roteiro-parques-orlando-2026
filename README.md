@@ -1,17 +1,21 @@
 # Minha Viagem Orlando 2026
 
-Guia de bolso responsivo em React + TypeScript + Vite. Sem login, backend, banco remoto ou serviços pagos. Primeiro roteiro: **Universal Islands of Adventure, sexta-feira, 30/10/2026**.
+Guia de bolso em React + TypeScript + Vite, responsivo e instalável como PWA. Sem login, backend, banco remoto ou serviços pagos.
 
-## Rodar localmente
+Roteiros disponíveis:
 
-Requer Node.js 22.12+ (ou outra versão compatível com o Vite instalado) e npm.
+- **Islands of Adventure — 30/10/2026.** Roteiro e alimentação originais preservados.
+- **Magic Kingdom — 01/11/2026.** Atrações, transporte e alimentação cadastrados.
+- Epic Universe e Universal Studios Florida aguardam cadastro.
+
+## Rodar e gerar o build
+
+Requer Node.js 22.12+ e npm.
 
 ```sh
 npm ci
 npm run dev
 ```
-
-Abra a URL exibida pelo Vite. Para produção:
 
 ```sh
 npm test
@@ -19,92 +23,106 @@ npm run build
 npm run preview
 ```
 
-O resultado está em `dist/`. O service worker é gerado no build de produção. Use o preview ou HTTPS no GitHub Pages para verificar o PWA; não abra `index.html` diretamente como arquivo local.
+O resultado fica em `dist/`. O service worker é gerado no build de produção. Para verificar o PWA use o preview ou o site em HTTPS, sem abrir o HTML diretamente como arquivo.
 
-## Publicar gratuitamente no GitHub Pages
+## Publicação e atualização no GitHub Pages
 
-1. Crie um repositório público no GitHub e envie estes arquivos, incluindo `package-lock.json` e `.github/workflows/deploy.yml`, para `main` ou `master`.
-2. Em **Settings → Pages → Build and deployment → Source**, escolha **GitHub Actions**.
-3. Em **Actions**, acompanhe **Publicar guia no GitHub Pages**. O primeiro envio executa testes, build e deploy. Se precisar, inicie manualmente pelo botão **Run workflow**.
-4. Abra a URL informada pelo job de publicação, normalmente `https://USUARIO.github.io/REPOSITORIO/`.
+O repositório está conectado a `joaowozniack/roteiro-parques-orlando-2026`, com Pages já habilitado. Faça commit das alterações e push para `master` (ou `main`, também aceita pelo workflow). Inclua os novos arquivos de dados, componentes, estilos e testes.
 
-O workflow detecta `GITHUB_REPOSITORY` e configura automaticamente o `base` do Vite. Repositórios `USUARIO.github.io` usam `/`. Para domínio próprio ou outro caminho, defina `VITE_BASE_PATH` no ambiente de build (por exemplo `/` ou `/meu-repo/`, sempre com barras nas extremidades). O manifest, os ícones, os assets e o service worker acompanham esse caminho.
+O workflow **Publicar guia no GitHub Pages** executa instalação pelo lockfile, testes, build e deploy. Acompanhe a execução em Actions. A publicação continua em [joaowozniack.github.io/roteiro-parques-orlando-2026/](https://joaowozniack.github.io/roteiro-parques-orlando-2026/).
 
-O roteamento usa hash (`#/parque/islands-of-adventure`), permitindo atualizar ou abrir links diretos sem depender de regras de servidor ou `404.html`. O repositório está conectado a `joaowozniack/roteiro-parques-orlando-2026` e o Pages já foi ativado. As próximas atualizações são publicadas automaticamente após um push para `main` ou `master`.
+Para uma instalação nova: em Settings → Pages → Build and deployment → Source, selecione **GitHub Actions**. O `base` do Vite é detectado por `GITHUB_REPOSITORY`; repositórios `USUARIO.github.io` usam `/`. Um domínio próprio ou outro caminho pode definir `VITE_BASE_PATH`, sempre com barras nas extremidades.
 
-## Usar durante a viagem
+No celular, conecte-se à internet e toque em **Atualizar** quando o guia avisar que a nova versão está pronta. O progresso continua no mesmo armazenamento; não é necessário limpar os dados do navegador.
 
-- A tela inicial mostra os quatro parques. Apenas Islands possui roteiro e data. Os demais ficam preparados para receber dados.
-- Abra o roteiro, consulte a estratégia de cada etapa e expanda os detalhes. O destaque indica a primeira etapa **pendente** na ordem atual. Itens para voltar e pulados permanecem acessíveis por filtro.
-- Marque como concluída, pule por enquanto ou escolha voltar depois. Nenhuma etapa desaparece no filtro Todas. Os filtros de prioridade e status podem ser combinados.
-- O progresso conta **11 etapas: chegada + 10 atrações**, incluindo o show condicionado à confirmação. Complementares não entram nessa conta. Puladas e para voltar não contam como concluídas.
-- Toque em **Reordenar** e use Subir/Descer. **Restaurar ordem sugerida** recupera a ordem original sem alterar status ou prioridades.
-- As prioridades continuam exibidas nas etiquetas e nos filtros das atrações, mas a edição de prioridade foi removida da interface. Prioridades previamente salvas também são preservadas. As ações podem ser desfeitas pelo aviso ou pelo painel lateral. A sessão mantém as últimas 30 alterações; ao reabrir, ainda é possível alterar qualquer status e restaurar a ordem.
-- **Ferramentas** permite exportar/importar JSON e consultar instruções de instalação. A importação valida o conteúdo antes de substituir o progresso e permite desfazer. O backup contém os dados de referência do roteiro e o progresso; importar restaura ordem, status e prioridades previamente salvas das atrações, checklist, tarefas pessoais e opções de alimentação experimentadas dos parques conhecidos pela versão instalada. O conteúdo do roteiro continua definido pelos dados do projeto; o arquivo não é executado como código ou HTML.
-- Não há sincronização entre dispositivos. Exporte no primeiro aparelho e importe no segundo. Não há campos de anotações ou tempo de espera, conforme o escopo solicitado.
+## Checklist geral
 
-## Preparação e alimentação
+A tela inicial e a navegação oferecem **Checklist geral de preparação**, em `#/preparacao`. Ele é compartilhado pelos quatro parques e representa a preparação para o **próximo dia de parque**, sem criar histórico por data.
 
-A página do Islands of Adventure tem três abas independentes, com suporte a teclado e links diretos:
+São 22 tarefas fixas nos grupos Documentos, Celular, Mochila e Organização. É possível marcar/desmarcar, recolher grupos, acompanhar o percentual, adicionar até 100 tarefas pessoais, editar o nome e a descrição delas e excluir somente tarefas pessoais. As ações permitem desfazer durante a sessão.
 
-- **Preparação** (`#/parque/islands-of-adventure/preparacao`): 23 tarefas fixas em cinco grupos recolhíveis e progresso próprio. Permite acrescentar até 100 tarefas pessoais, com descrição opcional, e excluir somente essas tarefas. Reiniciar exige confirmação, mantém as tarefas pessoais e não altera atrações ou alimentação. Pode ser desfeito. Não há reinício automático à meia-noite.
-- **Atrações** (`#/parque/islands-of-adventure/atracoes`): roteiro original e ordem sugerida intactos. O endereço antigo, sem sufixo, continua abrindo esta aba. Os atalhos Voltar depois também abrem as atrações. As prioridades permanecem nas etiquetas e filtros, sem seletor para editá-las.
-- **Alimentação** (`#/parque/islands-of-adventure/alimentacao`): Frozen Butterbeer, Three Broomsticks, Green Eggs and Ham Cafe, Honeydukes e Mythos. Pesquisa por nome aceita buscas sem acentos. Filtros por tipo e região podem ser combinados. “Já experimentei” é salvo separadamente e não altera o progresso das atrações. Não há prioridades, ordem obrigatória ou horários de refeição.
+**Reiniciar checklist** exige confirmação, deixa as tarefas pendentes e mantém as tarefas pessoais. Não altera atrações nem alimentação. Não há reinício automático à meia-noite ou ao trocar de parque.
 
-Atrações em regiões com opções de alimentação têm um link contextual: por exemplo, Hagrid abre Alimentação filtrada por Hogsmeade. Esse filtro pode ser compartilhado no endereço (`?regiao=hogsmeade`, dentro do hash).
+A aba Preparação foi removida dos parques. Endereços antigos, como `#/parque/islands-of-adventure/preparacao`, encaminham ao checklist geral.
 
-Os preços são as estimativas fornecidas no planejamento, em dólares, sujeitos a alteração e impostos; **não são preços confirmados para 30/10/2026**. Onde não foi fornecido um valor, o cartão informa preço variável e orienta consultar o cardápio. Não há conversão automática para reais.
+## Atrações e alimentação
 
-## Atualizar a publicação existente
+Cada parque possui apenas duas abas:
 
-Após revisar as alterações, faça commit e push para a branch publicada (`main` ou `master`). Acompanhe o workflow **Publicar guia no GitHub Pages** em Actions. A configuração de Pages existente é reutilizada, sem criar outro site.
+- **Atrações:** prioridades, detalhes e estratégias; status Pendente, Concluída, Pulada e Voltar depois; filtros de status/prioridade; reordenação e restauração da ordem sugerida. As prioridades permanecem visíveis e as prioridades antigas salvas são preservadas; o editor de prioridade continua removido.
+- **Alimentação:** pesquisa por nome, inclusive sem acentos, filtros combinados por tipo e região e marcação “Já experimentei”. Sem prioridades, horários fixos ou ordem obrigatória. Atrações com opções na mesma região oferecem um link para a alimentação já filtrada.
 
-O endereço continua sendo [joaowozniack.github.io/roteiro-parques-orlando-2026/](https://joaowozniack.github.io/roteiro-parques-orlando-2026/). No celular, conecte-se à internet e toque em **Atualizar** quando o guia avisar que a nova versão está pronta. A migração preserva o progresso existente, sem precisar limpar os dados do navegador.
+Os dados de atrações e refeições de cada parque são independentes. Os links de navegação preservam o parque atual. Não há campos de tempo de espera nem anotações pessoais nas atrações.
 
-## Persistência e offline
+### Magic Kingdom
 
-O progresso usa `localStorage` em uma chave versionada isolada pelo caminho de instalação: `orlando-guide:/CAMINHO/:progress:v1` (na raiz: `orlando-guide:/:progress:v1`). A mesma chave e a versão 1 do formato foram mantidas para compatibilidade. Ao carregar dados antigos, uma migração aditiva inicializa somente os novos campos, preservando status, ordem e prioridades das atrações. Os domínios `parks`, `preparation`, `dining` e `customTasks` ficam separados dentro do mesmo snapshot, salvo de forma atômica. É salvo imediatamente após cada alteração. Reabrir o mesmo navegador, na mesma origem e caminho de instalação, recupera o estado. Abas da mesma instalação acompanham mudanças; a última gravação prevalece.
+Planejamento fornecido para 01/11/2026: chegada às **07h30 no estacionamento**, abertura prevista às **09h00**, fechamento previsto às **22h00**, sem Lightning Lane e sem depender de Single Rider. Transporte: monorail na ida e balsa ao TTC na volta.
 
-Limpar os dados do navegador, usar modo privado ou mudar a origem pode remover ou isolar o progresso. Se o armazenamento estiver indisponível ou cheio, aparece um aviso para exportar um backup. Arquivos incompatíveis são recusados sem substituir o estado atual.
+Os horários são referências do planejamento, sujeitos à confirmação. O desfile Festival of Fantasy está previsto para 14h00, com posicionamento por volta de 13h35; Happily Ever After está previsto para 20h00, com posicionamento 45 a 60 minutos antes. **Disney Starlight tem `plannedTime: null`**, mostra “Aguardando divulgação do horário” e pode ser reordenado quando a programação for divulgada.
 
-O PWA usa Workbox via `vite-plugin-pwa`, com precache dos arquivos locais, dados embutidos, ilustração e ícones. Não usa fontes, scripts ou imagens de CDN. Abra uma vez com internet e **aguarde “Pronto para usar offline”** antes de sair. Após o cache completo, o guia pode ser recarregado e usado sem rede. O sistema operacional pode remover caches por falta de espaço: vale testar em modo avião antes da viagem e manter um backup do progresso.
+**Buzz Lightyear’s Space Ranger Spin está somente em “Se sobrar tempo”**, conforme a alteração solicitada, junto a Jungle Cruise, Peter Pan’s Flight, It’s a Small World, Mickey’s PhilharMagic, Under the Sea e The Many Adventures of Winnie the Pooh. Complementares não são inseridas automaticamente no roteiro.
 
-No iPhone: Safari → Compartilhar → Adicionar à Tela de Início. No Android: Chrome → Instalar app/Adicionar à tela inicial, ou use o botão de instalação em Ferramentas quando o navegador o disponibilizar. A instalação é opcional para usar o guia.
+O roteiro tem **17 cartões e 15 etapas contadas no progresso**: a pausa para almoço pode ser marcada, mas não conta; as oportunidades de TRON à tarde e à noite mantêm status individuais e contam **uma única vez** no progresso. Uma volta conclui a atração, a repetição é opcional e a outra oportunidade deixa de ser indicada como próxima etapa obrigatória.
 
-Novas versões exibem um botão **Atualizar**, preservando o progresso. O indicador de conexão reflete a informação do navegador; o link externo da Universal precisa de internet. Não há dados de fila em tempo real.
+A alimentação inclui Pecos Bill, Columbia Harbour House, Sleepy Hollow, Aloha Isle, Casey’s Corner, Plaza Ice Cream Parlor e Liberty Square Market. Os valores são referências fornecidas no planejamento em dólares, sujeitos a alterações e impostos. Onde não há valor informado, o app orienta confirmar o cardápio. Não há conversão fictícia para reais.
 
-Os horários são o planejamento fornecido, sujeitos à confirmação. O show Dark Arts não tem horário inventado nem realização garantida. River Adventure fica fora das paradas ativas, com a indicação de reforma do planejamento e orientação para conferir a situação oficial. Referência: [aplicativo oficial da Universal](https://www.universalorlando.com/web/en/us/landing-page/mobile-app).
+Confira a programação no [My Disney Experience oficial](https://disneyworld.disney.go.com/en_CA/guest-services/my-disney-experience/mobile-apps/). O roteiro não garante operação, preços ou horários para a data da visita.
 
-## Adicionar parques
+## Persistência, migração e backups
 
-Os tipos estão em `src/types.ts`, os roteiros em `src/data/parks.ts` e a preparação/alimentação em `src/data/islands-extras.ts`. Validação, migração e backup ficam em `src/lib/progress.ts`. As novas telas reutilizam o tema em `src/components/Preparation.tsx`, `src/components/Dining.tsx` e `src/sections.css`, integradas por `src/App.tsx`.
+A chave anterior é mantida: `orlando-guide:/CAMINHO/:progress:v1` (na raiz, `orlando-guide:/:progress:v1`). Salvar é imediato e automático; a última gravação entre abas da mesma instalação prevalece. Se o armazenamento falhar, o guia avisa para exportar um backup.
 
-Cadastre data, horários, regiões, estratégias, etapas, complementares, indisponíveis e, opcionalmente, os arrays `preparation` e `dining` no objeto `Park`. Use IDs estáveis: eles vinculam os dados ao progresso. As rotas, o progresso e os cartões do roteiro reutilizam os mesmos componentes e selecionam o parque pela URL. A tela inicial libera o link para qualquer parque com etapas cadastradas. `activePark` indica o roteiro em destaque no dashboard e nos atalhos.
+A migração é aditiva:
 
-A validação completa automaticamente etapas novas ausentes em backups anteriores da mesma versão; alterações incompatíveis de modelo devem ganhar nova versão e migração. O JSON é validado estruturalmente e não é interpretado como HTML.
+- `parks` preserva status, prioridades salvas e ordem de cada parque. O Magic Kingdom ganha apenas seus próprios valores iniciais.
+- `dining` mantém as marcações de alimentação por parque.
+- `globalChecklist` passa a conter marcações e tarefas pessoais compartilhadas.
+- Ao ler um snapshot sem `globalChecklist`, as tarefas pessoais do Islands e as marcações de tarefas correspondentes são copiadas para o checklist geral. IDs equivalentes foram mantidos.
+- Os campos antigos `preparation` e `customTasks` por parque são preservados no snapshot para compatibilidade e backup, incluindo os itens antigos que não se aplicam ao checklist geral. Não são mais editados pela interface.
+- A presença de `globalChecklist` impede reaplicar a migração após reiniciar ou editar o checklist.
 
-## Verificação
+**Ferramentas** exporta/importa o roteiro e todo o progresso em JSON, incluindo o checklist geral. Backups de versões anteriores continuam aceitos e são migrados. A importação valida o conteúdo antes de substituir o estado e permite desfazer. O arquivo de referência não altera os dados do roteiro nem executa HTML ou código externo.
+
+Não há sincronização entre celulares. Exporte em um dispositivo e importe em outro. Limpar o armazenamento ou mudar a origem/caminho da instalação pode isolar ou remover o progresso.
+
+## Offline e instalação
+
+O PWA usa Workbox via `vite-plugin-pwa`, com precache dos dados embutidos, arquivos, ícones e ilustração locais. Não usa CDN para funções essenciais. Após o primeiro carregamento online completo, aguarde **Pronto para usar offline**. O checklist geral e ambos os parques podem ser recarregados e usados offline. Links oficiais dependem de internet.
+
+No iPhone: Safari → Compartilhar → Adicionar à Tela de Início. No Android: Chrome → Instalar app/Adicionar à tela inicial, ou o botão em Ferramentas quando disponível. A instalação é opcional. Teste em modo avião antes da visita e mantenha backup; o sistema pode remover caches por falta de espaço.
+
+## Estrutura
+
+- `src/data/parks.ts`: cadastro dos parques e roteiro original do Islands.
+- `src/data/magic-kingdom.ts`: roteiro, alimentação, horários previstos/nulos e complementares do Magic.
+- `src/data/preparation.ts`: checklist geral, com IDs compatíveis com a versão anterior.
+- `src/data/islands-extras.ts`: alimentação do Islands e checklist antigo mantido para migração.
+- `src/lib/progress.ts`: validação, migração, backups, reordenação e contagem de etapas únicas.
+- `src/components/Preparation.tsx`: checklist geral e edição de tarefas pessoais.
+- `src/components/Dining.tsx`: alimentação reutilizada pelos dois parques.
+- `src/App.tsx`, `src/styles.css`, `src/sections.css`, `src/trip.css`: interface e navegação.
+
+Para cadastrar novos parques, use um ID estável e acrescente dados ao array `parks`. Regiões, estratégias e alimentação são dados; os componentes são compartilhados. Pausas usam `kind: 'pause'`; oportunidades repetidas usam o mesmo `completionGroup`; horários não confirmados devem ser `null`, nunca inventados.
+
+## Testes
 
 ```sh
 npm test
 npm run build
 ```
 
-Para testar a aplicação publicada em um subdiretório, como no GitHub Pages:
+Para reproduzir o subdiretório do Pages nos testes de navegador:
 
 ```powershell
 $env:VITE_BASE_PATH = '/orlando-test/'
 npm run build
+$env:PLAYWRIGHT_CHANNEL = 'chrome'
 npm run test:e2e
 Remove-Item Env:VITE_BASE_PATH
 ```
 
-Em bash: `VITE_BASE_PATH=/orlando-test/ npm run build && npm run test:e2e`.
+Alternativamente, instale o Chromium de teste com `npx playwright install chromium` e omita `PLAYWRIGHT_CHANNEL`. O workflow executa testes unitários e build; a suíte Playwright é uma verificação local adicional.
 
-Os testes Playwright cobrem o fluxo móvel, persistência após reload, filtros, prioridades, reordenação, backup, desfazer, migração do formato anterior, tarefas pessoais, confirmação de reinício, independência das três seções, filtros de alimentação, links por região, manifest/ícones em subcaminho e reload offline. Também verificam layouts de 320, 390, 768 e 1440 px. Instale o Chromium de teste com `npx playwright install chromium` antes da primeira execução. As capturas ficam em `test-results/` (ignorado no Git). Asserções unitárias verificam recuperação, migração sem perda de dados e rejeição de backups ou tarefas pessoais inválidos. O workflow executa testes unitários e build; a suíte de navegador é uma verificação local adicional.
+Os testes cobrem migração, preservação de dados, edição/reset do checklist, independência dos parques, pausa e TRON no progresso, Starlight sem horário, Buzz complementar, filtros/pesquisa, backup, falhas de armazenamento, navegação offline e layouts de 320, 390, 768 e 1440 px. Capturas ficam em `test-results/` (ignorado no Git). A verificação usa Chrome com emulação de toque e viewport; instalação em aparelhos físicos e deploy real dependem do ambiente de destino.
 
-Se preferir um Chrome já instalado, defina `PLAYWRIGHT_CHANNEL=chrome` (em PowerShell: `$env:PLAYWRIGHT_CHANNEL = 'chrome'`). A validação realizada neste projeto usou Chrome, incluindo emulação de viewport e toque de iPhone; a instalação em um iPhone/Android físico e o deploy real no GitHub dependem do ambiente de destino.
-
-Os ícones PNG são locais, já incluídos. Para regenerá-los: `node scripts/generate-icons.mjs` (sem bibliotecas extras). A ilustração SVG também é local e editável.
-
-Referências de implementação: [Vite no GitHub Pages](https://vite.dev/guide/static-deploy.html#github-pages), [Vite PWA / Workbox](https://vite-pwa-org.netlify.app/workbox/).
+Os ícones PNG já estão incluídos e podem ser regenerados sem bibliotecas extras com `node scripts/generate-icons.mjs`. A ilustração SVG é local.

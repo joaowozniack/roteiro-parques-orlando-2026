@@ -3,15 +3,15 @@ import { ArrowDown, ClipboardCheck, Utensils, ArrowLeft, ArrowRight, ArrowUp, Ar
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import Preparation from './components/Preparation'
 import Dining from './components/Dining'
+import { preparationGroups } from './data/preparation'
 import { activePark, parks, UNIVERSAL_URL } from './data/parks'
-import { exportState, importState, initialState, moveStep, parseState, priorityLabels, statusLabels, STORAGE_KEY } from './lib/progress'
+import { exportState, importState, initialState, moveStep, itinerarySummary, parseState, priorityLabels, statusLabels, STORAGE_KEY } from './lib/progress'
 import type { GuideState, ItineraryStep, Park, PreparationTask, Priority, StepStatus } from './types'
 
 type InstallEvent = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }> }
 type Filter = 'all' | StepStatus
-type ParkSection = 'preparacao' | 'atracoes' | 'alimentacao'
+type ParkSection = 'atracoes' | 'alimentacao'
 const parkSections: { id: ParkSection; label: string; icon: typeof Route }[] = [
-  { id: 'preparacao', label: 'Preparação', icon: ClipboardCheck },
   { id: 'atracoes', label: 'Atrações', icon: Route },
   { id: 'alimentacao', label: 'Alimentação', icon: Utensils },
 ]
@@ -28,6 +28,7 @@ export default function App() {
   const [storageError, setStorageError] = useState(initial.error)
   const [toast, setToast] = useState('')
   const [hash, setHash] = useState(location.hash)
+  const [lastParkId, setLastParkId] = useState(activePark.id)
   const [online, setOnline] = useState(navigator.onLine)
   const [tools, setTools] = useState(false)
   const [install, setInstall] = useState<InstallEvent | null>(null)
@@ -43,17 +44,20 @@ export default function App() {
   })
   const offlineReady = firstCacheReady || existingCacheReady
   const hashPath = hash.split('?')[0]
+  const isChecklist = hashPath === '#/preparacao' || (hashPath.startsWith('#/parque/') && hashPath.split('/')[3] === 'preparacao')
   const parkId = hashPath.startsWith('#/parque/') ? hashPath.split('/')[2] : undefined
   const section: ParkSection = parkSections.some(item => item.id === hashPath.split('/')[3]) ? hashPath.split('/')[3] as ParkSection : 'atracoes'
   const park = parks.find(p => p.id === parkId && p.steps.length)
-  const currentPark = park ?? activePark
+  const currentPark = park ?? parks.find(item => item.id === lastParkId) ?? activePark
+  const featuredProgress = itinerarySummary(activePark, state.parks[activePark.id])
   const requestedRegion = new URLSearchParams(hash.split('?')[1] ?? '').get('regiao') ?? 'all'
   const foodRegion = currentPark.dining?.some(item => item.region.id === requestedRegion) ? requestedRegion : 'all'
   const progress = state.parks[currentPark.id]
-  const completed = Object.values(progress.statuses).filter(s => s === 'completed').length
+  const { completed, total, percent } = itinerarySummary(currentPark, progress)
+  const checklist = state.globalChecklist
+  const checklistTasks = [...preparationGroups.flatMap(group => group.tasks), ...checklist.customTasks]
+  const checklistCompleted = checklistTasks.filter(task => checklist.checked[task.id]).length
   const laterCount = Object.values(progress.statuses).filter(s => s === 'later').length
-  const total = currentPark.steps.length
-  const percent = Math.round(completed / total * 100)
 
   useEffect(() => {
     const route = (event: HashChangeEvent) => {
@@ -76,6 +80,8 @@ export default function App() {
     window.addEventListener('beforeinstallprompt', prompt); window.addEventListener('storage', sync)
     return () => { window.removeEventListener('hashchange', route); window.removeEventListener('online', connect); window.removeEventListener('offline', connect); window.removeEventListener('beforeinstallprompt', prompt); window.removeEventListener('storage', sync) }
   }, [])
+  useEffect(() => { if (park && !isChecklist) setLastParkId(park.id) }, [park, isChecklist])
+  useEffect(() => { if (isChecklist && hashPath !== '#/preparacao') { window.history.replaceState(null, '', '#/preparacao'); setHash('#/preparacao') } }, [isChecklist, hashPath])
   useEffect(() => { if (tools) dialog.current?.showModal(); else dialog.current?.close() }, [tools])
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 5500); return () => clearTimeout(timer) }, [toast])
 
@@ -91,19 +97,20 @@ export default function App() {
     return `#/parque/${currentPark.id}/${section}${region === 'all' ? '' : `?regiao=${encodeURIComponent(region)}`}`
   }
   function togglePreparation(id: string) {
-    const checked = state.preparation[currentPark.id]
-    change({ ...state, preparation: { ...state.preparation, [currentPark.id]: { ...checked, [id]: !checked[id] } } }, checked[id] ? 'Tarefa marcada como pendente.' : 'Tarefa concluída.')
+    change({ ...state, globalChecklist: { ...checklist, checked: { ...checklist.checked, [id]: !checklist.checked[id] } } }, checklist.checked[id] ? 'Tarefa marcada como pendente.' : 'Tarefa concluída.')
   }
   function addPersonalTask(task: PreparationTask) {
-    const tasks = state.customTasks[currentPark.id]
-    if (tasks.length >= 100) return
-    change({ ...state, customTasks: { ...state.customTasks, [currentPark.id]: [...tasks, task] } }, 'Tarefa pessoal adicionada.')
+    if (checklist.customTasks.length >= 100) return
+    change({ ...state, globalChecklist: { ...checklist, customTasks: [...checklist.customTasks, task] } }, 'Tarefa pessoal adicionada.')
+  }
+  function editPersonalTask(task: PreparationTask) {
+    if (!checklist.customTasks.some(item => item.id === task.id)) return
+    change({ ...state, globalChecklist: { ...checklist, customTasks: checklist.customTasks.map(item => item.id === task.id ? task : item) } }, 'Tarefa pessoal atualizada.')
   }
   function deletePersonalTask(id: string) {
-    if (!state.customTasks[currentPark.id].some(task => task.id === id)) return
-    const checked = { ...state.preparation[currentPark.id] }
-    delete checked[id]
-    change({ ...state, customTasks: { ...state.customTasks, [currentPark.id]: state.customTasks[currentPark.id].filter(task => task.id !== id) }, preparation: { ...state.preparation, [currentPark.id]: checked } }, 'Tarefa pessoal excluída. Você pode desfazer.')
+    if (!checklist.customTasks.some(task => task.id === id)) return
+    const checked = { ...checklist.checked }; delete checked[id]
+    change({ ...state, globalChecklist: { checked, customTasks: checklist.customTasks.filter(task => task.id !== id) } }, 'Tarefa pessoal excluída. Você pode desfazer.')
   }
   function toggleDining(id: string) {
     const tried = state.dining[currentPark.id]
@@ -133,8 +140,9 @@ export default function App() {
       <a className="brand" href="#/" aria-label="Orlando 2026, início"><span className="brand-mark"><Compass size={27} /></span><span>orlando<span className="brand-year">2026 / GUIA DE VIAGEM</span></span></a>
       <div className="nav-caption">SUA PRÓXIMA AVENTURA</div>
       <nav aria-label="Navegação principal">
-        <a className={!park ? 'active' : ''} href="#/"><House size={19} /> Minha viagem</a>
-        <a className={park ? 'active' : ''} href={parkPath} onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}><Route size={19} /> Meu roteiro <span className="nav-dot" /></a>
+        <a className={!park && !isChecklist ? 'active' : ''} href="#/"><House size={19} /> Minha viagem</a>
+        <a className={park && !isChecklist ? 'active' : ''} href={`#/parque/${currentPark.id}`} onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}><Route size={19} /> Meu roteiro <span className="nav-dot" /></a>
+        <a className={isChecklist ? 'active' : ''} href="#/preparacao"><ClipboardCheck size={19} /> Checklist geral</a>
         <button onClick={goLater}><RotateCcw size={19} /> Voltar depois {laterCount > 0 && <span className="count">{laterCount}</span>}</button>
       </nav>
       <div className="sidebar-trip"><span className="eyebrow">O PRÓXIMO DESTINO</span><div className="trip-icon"><Mountain size={30} /></div><strong>{currentPark.shortName}</strong><span>{currentPark.date ? dateLabel(currentPark.date) : 'Data a definir'}</span><div className="mini-progress"><i style={{ width: `${percent}%` }} /></div><small>{completed} de {total} etapas concluídas</small></div>
@@ -145,9 +153,12 @@ export default function App() {
       <main id="main" tabIndex={-1}>
         {storageError && <div className="notice warning" role="alert"><Info size={18} /><span>{storageError}</span><button onClick={download}>Exportar</button></div>}
         {needRefresh && <div className="notice"><Sparkles size={18} /><span>Uma nova versão do guia está pronta.</span><button onClick={() => updateServiceWorker(true)}>Atualizar</button></div>}
-        {park ? <>
+        {isChecklist ? <>
+          <a className="back-link" href="#/"><ArrowLeft size={16} /> Minha viagem</a>
+          <Preparation checked={checklist.checked} customTasks={checklist.customTasks} onToggle={togglePreparation} onAdd={addPersonalTask} onEdit={editPersonalTask} onDelete={deletePersonalTask} onReset={() => change({ ...state, globalChecklist: { ...checklist, checked: {} } }, 'Checklist geral reiniciado. Você pode desfazer.')} />
+        </> : park ? <>
           <a className="back-link" href="#/"><ArrowLeft size={16} /> Todos os parques</a>
-          <section className="park-hero">
+          <section className={`park-hero ${park.accent}`}>
             <img className="park-hero-art" src={`${import.meta.env.BASE_URL}island.svg`} alt="" />
             <div className="park-hero-content"><span className="eyebrow"><span className="live-dot" /> SEU DIA DE AVENTURA</span><h1>{park.id === activePark.id ? <>Islands of<br />Adventure</> : park.shortName}<span className="heading-dot">.</span></h1><p>{park.resort}</p>{park.date && <span className="date-pill"><CalendarDays size={15} /> {dateLabel(park.date)}</span>}</div>
           </section>
@@ -160,40 +171,42 @@ export default function App() {
             tabs[next]?.focus(); tabs[next]?.click()
           }}>{parkSections.map(item => <a key={item.id} id={`tab-${item.id}`} role="tab" aria-selected={section === item.id} aria-controls="park-section-panel" tabIndex={section === item.id ? 0 : -1} className={section === item.id ? 'selected' : ''} href={sectionPath(item.id)}><item.icon size={18} /><span>{item.label}</span></a>)}</div>
           <div id="park-section-panel" role="tabpanel" aria-labelledby={`tab-${section}`}>
-          {section === 'preparacao' ? <Preparation park={park} checked={state.preparation[park.id]} customTasks={state.customTasks[park.id]} onToggle={togglePreparation} onAdd={addPersonalTask} onDelete={deletePersonalTask} onReset={() => change({ ...state, preparation: { ...state.preparation, [park.id]: {} } }, 'Checklist reiniciado. Você pode desfazer.')} /> : section === 'alimentacao' ? <Dining park={park} tried={state.dining[park.id]} region={foodRegion} onRegion={region => { location.hash = sectionPath('alimentacao', region) }} onToggle={toggleDining} /> : <div className="park-layout"><div className="itinerary-main">
-            <div className="day-facts"><div><Flag size={18} /><span>Na entrada<strong>{park.arrival ?? 'A definir'}</strong></span></div><div><Clock3 size={18} /><span>Abertura prevista<strong>{park.opening ?? 'A confirmar'}</strong></span></div><div><Mountain size={18} /><span>Fechamento previsto<strong>{park.closing ?? 'A confirmar'}</strong></span></div></div>
+          {section === 'alimentacao' ? <Dining key={park.id} park={park} tried={state.dining[park.id]} region={foodRegion} onRegion={region => { location.hash = sectionPath('alimentacao', region) }} onToggle={toggleDining} /> : <div className="park-layout"><div className="itinerary-main">
+            <div className="day-facts"><div><Flag size={18} /><span>{park.arrivalLabel ?? 'Na entrada'}<strong>{park.arrival ?? 'A definir'}</strong></span></div><div><Clock3 size={18} /><span>Abertura prevista<strong>{park.opening ?? 'A confirmar'}</strong></span></div><div><Mountain size={18} /><span>Fechamento previsto<strong>{park.closing ?? 'A confirmar'}</strong></span></div></div>
             <div className="plan-info">{park.passLabel && <span><Ticket size={15} /> {park.passLabel}</span>}{park.queueAdvice && <span><Zap size={15} /> {park.queueAdvice}</span>}</div>
+            {park.transport && <p className="transport-plan"><Route size={15} /> {park.transport}</p>}
             <p className="schedule-note"><Info size={14} /> Horários planejados, sujeitos à confirmação no <a href={currentPark.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">aplicativo oficial <ExternalLink size={11} /></a>.</p>
-            <section className="mobile-progress"><Progress completed={completed} total={total} /></section>
+            <section className="mobile-progress"><Progress completed={completed} total={total} /></section>{park.steps.some(step => step.completionGroup) && <p className="progress-help">TRON conta uma única vez, à tarde ou à noite. A repetição é opcional e a pausa para almoço fica fora do progresso.</p>}
             <section id="roteiro" className="route-section">
-              <div className="section-heading"><div><span className="eyebrow">UM DIA, MUITAS HISTÓRIAS</span><h2>Seu roteiro <span>{total} etapas</span></h2></div><button className={`secondary compact ${reordering ? 'selected' : ''}`} onClick={() => setReordering(!reordering)} aria-pressed={reordering}><ArrowUpDown size={16} /> {reordering ? 'Finalizar' : 'Reordenar'}</button></div>
+              <div className="section-heading"><div><span className="eyebrow">UM DIA, MUITAS HISTÓRIAS</span><h2>Seu roteiro <span>{park.steps.length} etapas</span></h2></div><button className={`secondary compact ${reordering ? 'selected' : ''}`} onClick={() => setReordering(!reordering)} aria-pressed={reordering}><ArrowUpDown size={16} /> {reordering ? 'Finalizar' : 'Reordenar'}</button></div>
               <div className="filters" aria-label="Filtrar por prioridade">{(['all', 'essential', 'high', 'optional'] as const).map(value => <button key={value} aria-pressed={priorityFilter === value} className={`filter ${priorityFilter === value ? 'selected' : ''}`} onClick={() => setPriorityFilter(value)}>{value !== 'all' && <span className={`priority-dot ${value}`} />}{value === 'all' ? 'Todas' : priorityLabels[value]}</button>)}</div>
               <div className="status-filter"><label htmlFor="status-filter"><ListChecks size={16} /> Mostrar</label><select id="status-filter" value={statusFilter} onChange={e => setStatusFilter(e.target.value as Filter)}><option value="all">Todos os status</option>{Object.entries(statusLabels).map(([value, label]) => <option key={value} value={value}>{value === 'pending' ? 'Pendentes' : value === 'completed' ? 'Concluídas' : value === 'skipped' ? 'Puladas' : label}</option>)}</select><button className="text-button restore" onClick={() => changePark({ ...progress, order: park.steps.map(s => s.id) }, 'Ordem sugerida restaurada.')}><RotateCcw size={13} /> Restaurar ordem sugerida</button></div>
               {reordering && <div className="notice"><ArrowUpDown size={17} /><span>Use as setas para mover cada etapa na ordem completa do roteiro. A numeração original é preservada.</span></div>}
               <div className="step-list">{(() => {
                 const ordered = progress.order.map(id => park.steps.find(s => s.id === id)!).filter(Boolean)
-                const next = ordered.find(s => progress.statuses[s.id] === 'pending')
-                const visible = ordered.filter(s => (priorityFilter === 'all' || progress.priorities[s.id] === priorityFilter) && (statusFilter === 'all' || progress.statuses[s.id] === statusFilter))
-                return visible.length ? visible.map(step => <StepCard key={step.id} step={step} status={progress.statuses[step.id]} priority={progress.priorities[step.id]} next={next?.id === step.id} reordering={reordering} first={progress.order[0] === step.id} last={progress.order.at(-1) === step.id} onStatus={value => status(step.id, value)} foodLink={park.dining?.some(item => item.region.id === step.region.id) ? sectionPath('alimentacao', step.region.id) : undefined} onMove={direction => changePark(moveStep(progress, step.id, direction), 'Ordem atualizada.')} />) : <div className="empty-state"><ListChecks size={30} /><h3>Nenhuma etapa por aqui</h3><p>Experimente outra prioridade ou status.</p><button className="secondary" onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}>Limpar filtros</button></div>
+                const next = ordered.find(s => s.id === itinerarySummary(park, progress).nextId)
+                const visible = ordered.filter(s => (priorityFilter === 'all' || (s.kind !== 'pause' && progress.priorities[s.id] === priorityFilter)) && (statusFilter === 'all' || progress.statuses[s.id] === statusFilter))
+                return visible.length ? visible.map(step => <StepCard key={step.id} step={step} status={progress.statuses[step.id]} priority={progress.priorities[step.id]} next={next?.id === step.id} groupCompleted={!!step.completionGroup && park.steps.some(item => item.completionGroup === step.completionGroup && progress.statuses[item.id] === 'completed')} reordering={reordering} first={progress.order[0] === step.id} last={progress.order.at(-1) === step.id} onStatus={value => status(step.id, value)} foodLink={park.dining?.some(item => item.region.id === step.region.id) ? sectionPath('alimentacao', step.region.id) : undefined} onMove={direction => changePark(moveStep(progress, step.id, direction), 'Ordem atualizada.')} />) : <div className="empty-state"><ListChecks size={30} /><h3>Nenhuma etapa por aqui</h3><p>Experimente outra prioridade ou status.</p><button className="secondary" onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}>Limpar filtros</button></div>
               })()}</div>
             </section>
             <Extras park={park} />
-          </div><aside className="day-sidebar"><div className="progress-panel"><span className="eyebrow">CADA ETAPA É UMA CONQUISTA</span><h3>Sua aventura, seu ritmo.</h3><Progress completed={completed} total={total} /><div className="summary-numbers"><div><strong>{total - completed}</strong><span>por explorar</span></div><div><strong>{laterCount}</strong><span>para voltar</span></div></div><p>Curta o caminho. Seu progresso é salvo automaticamente neste dispositivo.</p>{history.length > 0 && <button className="text-button" onClick={undo}><RotateCcw size={14} /> Desfazer última alteração</button>}</div><div className="tip-panel"><Sparkles size={20} /><h3>Uma dica de viagem</h3><p>Single Rider pode separar o grupo. Confira a disponibilidade e avalie se vale a pena em cada atração.</p><a href={currentPark.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">Abrir aplicativo oficial <ExternalLink size={13} /></a></div></aside></div>}
+          </div><aside className="day-sidebar"><div className="progress-panel"><span className="eyebrow">CADA ETAPA É UMA CONQUISTA</span><h3>Sua aventura, seu ritmo.</h3><Progress completed={completed} total={total} /><div className="summary-numbers"><div><strong>{total - completed}</strong><span>por explorar</span></div><div><strong>{laterCount}</strong><span>para voltar</span></div></div><p>Curta o caminho. Seu progresso é salvo automaticamente neste dispositivo.</p>{history.length > 0 && <button className="text-button" onClick={undo}><RotateCcw size={14} /> Desfazer última alteração</button>}</div><div className="tip-panel"><Sparkles size={20} /><h3>Uma dica de viagem</h3><p>{park.queueTip ?? 'Single Rider pode separar o grupo. Confira a disponibilidade e avalie se vale a pena em cada atração.'}</p><a href={currentPark.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">Abrir aplicativo oficial <ExternalLink size={13} /></a></div></aside></div>}
           </div>
         </> : <>
           <section className="welcome"><span className="eyebrow"><span className="live-dot" /> A CONTAGEM REGRESSIVA JÁ COMEÇOU</span><h1>Minha Viagem<br />Orlando <span className="outline-year">2026<span className="heading-dot">.</span></span></h1><p>Grandes aventuras. Um roteiro no bolso.</p><div className="trip-meta"><span><CalendarDays size={16} /> Outubro e novembro de 2026</span><span><MapPin size={16} /> Orlando, Flórida</span></div><div className="welcome-stamp"><Compass size={65} strokeWidth={1} /><span>PRÓXIMA PARADA<br /><strong>MEMÓRIAS INCRÍVEIS</strong></span></div></section>
+          <a className="checklist-entry" href="#/preparacao"><span className="checklist-entry-icon"><ClipboardCheck size={27} /></span><div><span className="eyebrow">ANTES DO PRÓXIMO DIA DE PARQUE</span><h2>Checklist geral de preparação</h2><p>{checklistCompleted} de {checklistTasks.length} tarefas concluídas · compartilhado entre os quatro parques</p></div><ArrowRight size={22} /></a>
           <section className="parks-section"><div className="section-heading"><div><span className="eyebrow">ESCOLHA SUA AVENTURA</span><h2>Seus parques<span className="inline-count">04</span></h2></div><span className="muted desktop-only">Uma viagem. Mundos para descobrir.</span></div>
-            <a className="featured-park" href={parkPath}><img src={`${import.meta.env.BASE_URL}island.svg`} alt="Ilustração de uma ilha com castelo, montanha-russa e palmeiras" /><div className="featured-overlay" /><div className="featured-content"><span className="ready-label"><span className="live-dot" /> ROTEIRO PRONTO</span><span className="resort-label">UNIVERSAL ORLANDO RESORT</span><h2>Islands of<br />Adventure</h2><p>Um dia entre dinossauros,<br className="desktop-only" /> super-heróis e muita magia.</p><div className="featured-date"><CalendarDays size={16} /><strong>30 OUT</strong><span>Sexta-feira · 2026</span></div><div className="featured-footer"><span className="primary">{completed ? 'Continuar aventura' : 'Explorar roteiro'}<ArrowRight size={17} /></span><span className="featured-step-count">10 atrações + chegada <span>·</span> {percent}% concluído</span></div></div><span className="art-caption">A AVENTURA ESTÁ LOGO ALI ↗</span></a>
-            <div className="upcoming-grid">{parks.slice(1).map((p, index) => <article className={`upcoming-park ${p.accent}`} key={p.id}><div className="upcoming-top"><span className="park-symbol">{index === 0 ? <Ticket size={25} /> : index === 1 ? <Sparkles size={25} /> : <Flag size={25} />}</span><span className="soon-label">{p.steps.length ? 'Roteiro pronto' : 'Em breve'}</span></div><span className="resort-label">{p.resort}</span><h3>{p.steps.length ? <a href={`#/parque/${p.id}`}>{p.shortName} <ArrowRight size={14} /></a> : p.shortName}</h3><p>{p.description}</p><div className="not-planned"><CalendarDays size={14} /> {p.steps.length && p.date ? dateLabel(p.date) : 'Roteiro ainda não cadastrado'}</div></article>)}</div>
+            <a className="featured-park" href={parkPath}><img src={`${import.meta.env.BASE_URL}island.svg`} alt="Ilustração de uma ilha com castelo, montanha-russa e palmeiras" /><div className="featured-overlay" /><div className="featured-content"><span className="ready-label"><span className="live-dot" /> ROTEIRO PRONTO</span><span className="resort-label">UNIVERSAL ORLANDO RESORT</span><h2>Islands of<br />Adventure</h2><p>Um dia entre dinossauros,<br className="desktop-only" /> super-heróis e muita magia.</p><div className="featured-date"><CalendarDays size={16} /><strong>30 OUT</strong><span>Sexta-feira · 2026</span></div><div className="featured-footer"><span className="primary">{featuredProgress.completed ? 'Continuar aventura' : 'Explorar roteiro'}<ArrowRight size={17} /></span><span className="featured-step-count">10 atrações + chegada <span>·</span> {featuredProgress.percent}% concluído</span></div></div><span className="art-caption">A AVENTURA ESTÁ LOGO ALI ↗</span></a>
+            <div className="upcoming-grid">{parks.slice(1).map((p, index) => <article className={`upcoming-park ${p.accent} ${p.steps.length ? 'park-ready' : ''}`} key={p.id}><div className="upcoming-top"><span className="park-symbol">{p.id === 'magic-kingdom' ? <Flag size={25} /> : p.id === 'epic-universe' ? <Sparkles size={25} /> : <Ticket size={25} />}</span><span className="soon-label">{p.steps.length ? 'Roteiro pronto' : 'Aguardando cadastro'}</span></div><span className="resort-label">{p.resort}</span><h3>{p.steps.length ? <a href={`#/parque/${p.id}`}>{p.shortName} <ArrowRight size={14} /></a> : p.shortName}</h3><p>{p.description}</p><div className="not-planned"><CalendarDays size={14} /> {p.steps.length && p.date ? dateLabel(p.date) : 'Roteiro ainda não cadastrado'}</div>{p.steps.length > 0 && <a className="ready-park-link" href={`#/parque/${p.id}`}>Explorar roteiro <ArrowRight size={14} /><span>{itinerarySummary(p, state.parks[p.id]).percent}% concluído</span></a>}</article>)}</div>
           </section>
           <section className="home-bottom"><div className="travel-tip"><div className="tip-icon"><Download size={21} /></div><div><h3>Seu guia vai com você. Até offline.</h3><p>Abra uma vez com internet e aguarde a indicação “Pronto para usar offline”. Depois, aproveite o parque.</p></div><button className="secondary" onClick={() => setTools(true)}>Preparar meu celular<ArrowRight size={15} /></button></div><div className="home-note"><ShieldCheck size={16} /><span>Sem conta, sem complicação.<br />Seu progresso fica salvo neste navegador.</span></div></section>
         </>}
         <footer className="footer"><span><Compass size={14} /> Feito para aproveitar o caminho.</span><span>Orlando 2026 <span className="footer-dot">·</span> Seu guia de bolso</span></footer>
       </main>
     </div>
-    <nav className="mobile-nav" aria-label="Navegação móvel"><a href="#/" className={!park ? 'active' : ''}><House size={20} /><span>Viagem</span></a><a href={parkPath} className={park ? 'active' : ''} onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}><Route size={20} /><span>Roteiro</span></a><button onClick={goLater}><RotateCcw size={20} /><span>Voltar depois{laterCount ? ` (${laterCount})` : ''}</span></button><button onClick={() => setTools(true)}><Settings2 size={20} /><span>Ferramentas</span></button></nav>
+    <nav className="mobile-nav" aria-label="Navegação móvel"><a href="#/" className={!park && !isChecklist ? 'active' : ''}><House size={20} /><span>Viagem</span></a><a href={`#/parque/${currentPark.id}`} className={park && !isChecklist ? 'active' : ''} onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}><Route size={20} /><span>Roteiro</span></a><a href="#/preparacao" className={isChecklist ? 'active' : ''}><ClipboardCheck size={20} /><span>Checklist</span></a><button onClick={goLater}><RotateCcw size={20} /><span>Voltar depois{laterCount ? ` (${laterCount})` : ''}</span></button><button onClick={() => setTools(true)}><Settings2 size={20} /><span>Ferramentas</span></button></nav>
     <div className={`toast ${toast ? 'visible' : ''}`} role="status" aria-live="polite"><span>{toast}</span>{history.length > 0 && <button onClick={undo}>Desfazer</button>}<button className="toast-close" aria-label="Fechar aviso" onClick={() => setToast('')}><X size={16} /></button></div>
-    <dialog ref={dialog} className="tools-dialog" onClose={() => setTools(false)} onClick={e => { if (e.target === e.currentTarget) setTools(false) }} aria-labelledby="tools-title"><div className="dialog-heading"><div><span className="eyebrow">TUDO PRONTO PARA IR</span><h2 id="tools-title">Ferramentas da viagem</h2></div><button className="icon-button" aria-label="Fechar ferramentas" onClick={() => setTools(false)}><X /></button></div><p>Seu progresso fica neste navegador. Exporte um arquivo para guardar uma cópia ou levar para outro celular.</p><div className="tool-grid"><button className="secondary" onClick={download}><Download size={19} /> Exportar roteiro e progresso</button><button className="secondary" onClick={() => input.current?.click()}><Upload size={19} /> Importar arquivo JSON</button><input ref={input} type="file" accept=".json,application/json" hidden onChange={e => upload(e.target.files?.[0])} /></div><p className="small muted">A importação substitui o progresso atual e permite desfazer. Não há sincronização automática entre celulares. O arquivo inclui o roteiro de referência; a importação restaura o progresso das atrações, checklist, tarefas pessoais e alimentação dos parques cadastrados nesta versão.</p><div className="install-panel"><Download size={22} /><h3>Adicione à tela inicial</h3>{install ? <button className="primary" onClick={async () => { await install.prompt(); const choice = await install.userChoice; if (choice.outcome === 'accepted') setToast('Guia adicionado ao seu celular.'); setInstall(null) }}>Instalar guia <ArrowRight size={16} /></button> : <p>No iPhone, abra no Safari e toque em <strong>Compartilhar → Adicionar à Tela de Início</strong>. No Android, use <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong> no menu do Chrome.</p>}<span className="offline-status">{offlineReady ? <Check size={15} /> : <Info size={15} />}{offlineReady ? 'Arquivos disponíveis para uso offline.' : 'Aguarde o primeiro carregamento completo online para preparar o cache.'}</span></div><a className="official-link" href={currentPark.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">Aplicativo oficial da Universal <ExternalLink size={15} /></a></dialog>
+    <dialog ref={dialog} className="tools-dialog" onClose={() => setTools(false)} onClick={e => { if (e.target === e.currentTarget) setTools(false) }} aria-labelledby="tools-title"><div className="dialog-heading"><div><span className="eyebrow">TUDO PRONTO PARA IR</span><h2 id="tools-title">Ferramentas da viagem</h2></div><button className="icon-button" aria-label="Fechar ferramentas" onClick={() => setTools(false)}><X /></button></div><p>Seu progresso fica neste navegador. Exporte um arquivo para guardar uma cópia ou levar para outro celular.</p><div className="tool-grid"><button className="secondary" onClick={download}><Download size={19} /> Exportar roteiro e progresso</button><button className="secondary" onClick={() => input.current?.click()}><Upload size={19} /> Importar arquivo JSON</button><input ref={input} type="file" accept=".json,application/json" hidden onChange={e => upload(e.target.files?.[0])} /></div><p className="small muted">A importação substitui o progresso atual e permite desfazer. Não há sincronização automática entre celulares. O arquivo inclui o roteiro de referência; a importação restaura o progresso das atrações, checklist, tarefas pessoais e alimentação dos parques cadastrados nesta versão.</p><div className="install-panel"><Download size={22} /><h3>Adicione à tela inicial</h3>{install ? <button className="primary" onClick={async () => { await install.prompt(); const choice = await install.userChoice; if (choice.outcome === 'accepted') setToast('Guia adicionado ao seu celular.'); setInstall(null) }}>Instalar guia <ArrowRight size={16} /></button> : <p>No iPhone, abra no Safari e toque em <strong>Compartilhar → Adicionar à Tela de Início</strong>. No Android, use <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong> no menu do Chrome.</p>}<span className="offline-status">{offlineReady ? <Check size={15} /> : <Info size={15} />}{offlineReady ? 'Arquivos disponíveis para uso offline.' : 'Aguarde o primeiro carregamento completo online para preparar o cache.'}</span></div><a className="official-link" href={currentPark.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">Aplicativo oficial do parque <ExternalLink size={15} /></a></dialog>
   </>
 }
 
@@ -202,11 +215,13 @@ function Progress({ completed, total }: { completed: number; total: number }) {
   return <div className="progress-block"><div className="progress-label"><span>{completed} de {total} etapas concluídas</span><strong>{percent}%</strong></div><div className="progress-track" role="progressbar" aria-label="Progresso do roteiro" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${percent}%` }} /></div>{completed === total && <p className="completed-message"><CheckCheck size={17} /> Um dia inteiro de histórias. Aventura concluída!</p>}</div>
 }
 
-function StepCard({ step, status, priority, next, reordering, first, last, onStatus, foodLink, onMove }: { step: ItineraryStep; status: StepStatus; priority: Priority; next: boolean; reordering: boolean; first: boolean; last: boolean; onStatus: (status: StepStatus) => void; foodLink?: string; onMove: (direction: -1 | 1) => void }) {
+function StepCard({ step, status, priority, next, reordering, first, last, onStatus, foodLink, groupCompleted, onMove }: { step: ItineraryStep; status: StepStatus; priority: Priority; next: boolean; reordering: boolean; first: boolean; last: boolean; onStatus: (status: StepStatus) => void; foodLink?: string; groupCompleted?: boolean; onMove: (direction: -1 | 1) => void }) {
   const [expanded, setExpanded] = useState(step.number === 0)
   return <article id={`step-${step.id}`} className={`step-card priority-${priority} status-${status} ${next ? 'next-step' : ''}`} data-testid={`step-${step.id}`}>
     {next && <div className="next-label"><Route size={12} /> SUA PRÓXIMA ETAPA</div>}
-    <div className="step-top"><span className={`step-number ${status === 'completed' ? 'checked' : ''}`}>{status === 'completed' ? <Check size={19} /> : String(step.number).padStart(2, '0')}</span><div className="step-title"><div className="step-meta"><span><MapPin size={12} />{step.region.name}</span><span className={`priority-badge ${priority}`}>{priorityLabels[priority]}{step.conditional ? ` · ${step.conditional.toLocaleLowerCase('pt-BR')}` : ''}</span></div><h3>{step.name}</h3><span className="category">{step.category}</span></div></div>
+    <div className="step-top"><span className={`step-number ${status === 'completed' ? 'checked' : ''}`}>{status === 'completed' ? <Check size={19} /> : String(step.number).padStart(2, '0')}</span><div className="step-title"><div className="step-meta"><span><MapPin size={12} />{step.region.name}</span>{step.kind !== 'pause' && <span className={`priority-badge ${priority}`}>{priorityLabels[priority]}{step.conditional ? ` · ${step.conditional.toLocaleLowerCase('pt-BR')}` : ''}</span>}</div><h3>{step.name}</h3><span className="category">{step.category}</span></div></div>
+    {step.plannedTime !== undefined && <div className="step-schedule"><Clock3 size={14} /><span>{step.plannedTime === null ? 'Aguardando divulgação do horário' : `${step.plannedTime} · horário previsto`}{step.positioning && <small>Posicionamento: {step.positioning}</small>}</span></div>}
+    {groupCompleted && status !== 'completed' && <p className="repeat-note"><CheckCheck size={14} /> TRON já concluída em outra oportunidade. Repetir é opcional.</p>}
     <div className="queue-summary"><Route size={15} /><span>{step.queue.label}</span></div>
     {status !== 'pending' && <div className={`status-label ${status}`}>{status === 'completed' ? <CheckCheck size={14} /> : status === 'later' ? <RotateCcw size={14} /> : <SkipForward size={14} />}{statusLabels[status]}{status !== 'completed' && <button onClick={() => onStatus('pending')}>Retomar etapa</button>}</div>}
     {expanded && <div className="step-details" id={`details-${step.id}`}><p>{step.queue.detail}</p><ul>{step.tips.map(tip => <li key={tip}>{tip}</li>)}</ul></div>}
@@ -217,5 +232,5 @@ function StepCard({ step, status, priority, next, reordering, first, last, onSta
 }
 
 function Extras({ park }: { park: Park }) {
-  return <><section className="extras"><div className="section-heading"><div><span className="eyebrow">SEM PRESSA, SEM OBRIGAÇÃO</span><h2>Se sobrar tempo <Sparkles size={20} /></h2></div></div><p className="muted">Pequenas descobertas para encaixar se o dia permitir.</p><div className="extra-list">{park.extras.map((extra, index) => <details key={extra.name}><summary><span className="extra-icon">{index === 0 ? <Mountain size={17} /> : index === 2 ? <Waves size={17} /> : <Sparkles size={17} />}</span>{extra.name}<ChevronDown size={16} /></summary><p>{extra.description} Esta parada não faz parte do progresso principal.</p></details>)}</div></section><section className="unavailable"><Info size={19} /><div><h3>Fora do roteiro ativo</h3>{park.unavailable.map(item => <p key={item.name}><strong>{item.name}</strong><br />{item.reason}</p>)}<a href={park.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">Conferir informações oficiais <ExternalLink size={12} /></a></div></section></>
+  return <><section className="extras"><div className="section-heading"><div><span className="eyebrow">SEM PRESSA, SEM OBRIGAÇÃO</span><h2>Se sobrar tempo <Sparkles size={20} /></h2></div></div><p className="muted">Pequenas descobertas para encaixar se o dia permitir.</p><div className="extra-list">{park.extras.map((extra, index) => <details key={extra.name}><summary><span className="extra-icon">{index === 0 ? <Mountain size={17} /> : index === 2 ? <Waves size={17} /> : <Sparkles size={17} />}</span>{extra.name}<ChevronDown size={16} /></summary><p>{extra.region && <span className="extra-region">{extra.region.name}{extra.priority && <> · {priorityLabels[extra.priority]}</>}</span>}{extra.description} Esta parada não faz parte do progresso principal.</p></details>)}</div></section>{park.unavailable.length > 0 && <section className="unavailable"><Info size={19} /><div><h3>Fora do roteiro ativo</h3>{park.unavailable.map(item => <p key={item.name}><strong>{item.name}</strong><br />{item.reason}</p>)}<a href={park.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">Conferir informações oficiais <ExternalLink size={12} /></a></div></section>}</>
 }

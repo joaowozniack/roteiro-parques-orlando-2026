@@ -1,4 +1,5 @@
 import { parks } from '../data/parks'
+import { preparationGroups } from '../data/preparation'
 import type { GuideState, Park, ParkProgress, Priority, StepStatus } from '../types'
 export const STORAGE_KEY = `orlando-guide:${import.meta.env.BASE_URL}:progress:v1`
 export const priorityLabels: Record<Priority, string> = { essential: 'Essencial', high: 'Alta prioridade', optional: 'Opcional' }
@@ -13,6 +14,7 @@ export function initialState(): GuideState {
     preparation: Object.fromEntries(parks.map(p => [p.id, {}])),
     dining: Object.fromEntries(parks.map(p => [p.id, {}])),
     customTasks: Object.fromEntries(parks.map(p => [p.id, []])),
+    globalChecklist: { checked: {}, customTasks: [] },
   }
 }
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -64,6 +66,30 @@ export function parseState(value: unknown): GuideState {
       }
     }
   }
+  if (value.globalChecklist === undefined) {
+    // One-time migration from Islands; keep the old per-park snapshots intact
+    // for backups. Presence of globalChecklist prevents reapplying after reset.
+    const source = 'islands-of-adventure'
+    const tasks = result.customTasks[source].map(task => ({ ...task }))
+    const known = new Set([...preparationGroups.flatMap(group => group.tasks.map(task => task.id)), ...tasks.map(task => task.id)])
+    result.globalChecklist = { customTasks: tasks, checked: Object.fromEntries(Object.entries(result.preparation[source]).filter(([id]) => known.has(id))) }
+  } else {
+    const raw = value.globalChecklist
+    if (!object(raw) || !object(raw.checked) || !Array.isArray(raw.customTasks) || raw.customTasks.length > 100) throw new Error('O checklist geral é inválido.')
+    const ids = new Set<string>()
+    const tasks = raw.customTasks.map(task => {
+      if (!object(task) || typeof task.id !== 'string' || !/^personal-[a-zA-Z0-9-]{1,80}$/.test(task.id) || ids.has(task.id) || typeof task.name !== 'string' || !task.name.trim() || task.name.length > 120 || (task.description !== undefined && (typeof task.description !== 'string' || task.description.length > 240))) throw new Error('O checklist geral contém uma tarefa pessoal inválida.')
+      ids.add(task.id)
+      return { id: task.id, name: task.name.trim(), ...(typeof task.description === 'string' ? { description: task.description.trim() } : {}) }
+    })
+    const known = new Set([...preparationGroups.flatMap(group => group.tasks.map(task => task.id)), ...tasks.map(task => task.id)])
+    const checked: Record<string, boolean> = {}
+    for (const [id, value] of Object.entries(raw.checked)) {
+      if (!known.has(id) || typeof value !== 'boolean') throw new Error('O checklist geral contém uma marcação inválida.')
+      checked[id] = value
+    }
+    result.globalChecklist = { checked, customTasks: tasks }
+  }
   return result
 }
 export function importState(text: string): GuideState {
@@ -74,11 +100,25 @@ export function importState(text: string): GuideState {
   return parseState(data.progress)
 }
 export function exportState(state: GuideState): string {
-  return JSON.stringify({ app: 'orlando-pocket-guide', exportedAt: new Date().toISOString(), itinerary: parks, progress: state }, null, 2)
+  return JSON.stringify({ app: 'orlando-pocket-guide', exportedAt: new Date().toISOString(), itinerary: parks, preparation: preparationGroups, progress: state }, null, 2)
 }
 export function moveStep(progress: ParkProgress, id: string, direction: -1 | 1): ParkProgress {
   const order = [...progress.order], index = order.indexOf(id), target = index + direction
   if (index < 0 || target < 0 || target >= order.length) return progress
   ;[order[index], order[target]] = [order[target], order[index]]
   return { ...progress, order }
+}
+
+export function itinerarySummary(park: Park, progress: ParkProgress) {
+  const counted = park.steps.filter(step => step.kind !== 'pause' && step.countsTowardProgress !== false)
+  const group = (step: typeof counted[number]) => step.completionGroup ?? step.id
+  const groups = new Set(counted.map(group))
+  const done = new Set(counted.filter(step => progress.statuses[step.id] === 'completed').map(group))
+  const total = groups.size
+  const completed = done.size
+  const nextId = progress.order.find(id => {
+    const step = counted.find(step => step.id === id)
+    return step && progress.statuses[id] === 'pending' && !done.has(group(step))
+  })
+  return { total, completed, percent: total ? Math.round(completed / total * 100) : 0, nextId }
 }
