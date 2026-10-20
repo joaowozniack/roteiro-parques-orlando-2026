@@ -6,7 +6,7 @@ const storageKey = 'orlando-guide:/orlando-test/:progress:v1'
 const chargePhone = 'Carregar celulares.'
 const personalName = 'Levar óculos de sol'
 let errors: string[] = []
-test.beforeEach(async ({ page }) => { errors = []; page.on('pageerror', error => errors.push(error.message)) })
+test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(new Date('2026-10-20T12:00:00Z')); errors = []; page.on('pageerror', error => errors.push(error.message)) })
 test.afterEach(() => expect(errors).toEqual([]))
 
 test('atualização preserva snapshot v1 e permite navegar pelo checklist geral e pelas duas abas', async ({ page }) => {

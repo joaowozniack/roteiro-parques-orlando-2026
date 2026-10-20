@@ -4,7 +4,7 @@ const magic = './#/parque/magic-kingdom'
 const islands = './#/parque/islands-of-adventure'
 const key = 'orlando-guide:/orlando-test/:progress:v1'
 let errors: string[] = []
-test.beforeEach(async ({ page }) => { errors = []; page.on('pageerror', error => errors.push(error.message)) })
+test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(new Date('2026-10-20T12:00:00Z')); errors = []; page.on('pageerror', error => errors.push(error.message)) })
 test.afterEach(() => expect(errors).toEqual([]))
 
 test('Magic Kingdom: duas abas, horários planejados, Buzz complementar e progresso independente', async ({ page }) => {

@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test'
 
 let pageErrors: string[] = []
 test.beforeEach(async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-10-20T12:00:00Z'))
   pageErrors = []
   page.on('pageerror', error => pageErrors.push(error.message))
 })

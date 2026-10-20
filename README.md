@@ -47,6 +47,10 @@ A aba Preparação foi removida dos parques. Endereços antigos, como `#/parque/
 
 ## Atrações e alimentação
 
+O destaque da tela inicial acompanha o **calendário de Orlando (America/New_York)** e o progresso. Mostra o parque do dia ou o próximo agendado ainda não concluído; atingir 100% adianta o próximo parque, mesmo antes da data. Assim, Islands aparece antes e em 30/10; Magic passa ao destaque ao concluir Islands ou a partir de 31/10, no intervalo até sua visita em 01/11. A virada do dia é conferida automaticamente e ao voltar ao app, inclusive offline.
+
+Parques anteriores continuam acessíveis nos cartões menores com seu progresso intacto. Quando todos os próximos roteiros estiverem concluídos, o último permanece em destaque com “Rever roteiro”; parques aguardando cadastro não são promovidos. Nada reinicia o checklist ou o progresso durante essa troca. Os atalhos da tela inicial e o painel “O próximo destino” acompanham o novo destaque.
+
 Cada parque possui apenas duas abas:
 
 - **Atrações:** prioridades, detalhes e estratégias; status Pendente, Concluída, Pulada e Voltar depois; filtros de status/prioridade; reordenação e restauração da ordem sugerida. As prioridades permanecem visíveis e as prioridades antigas salvas são preservadas; o editor de prioridade continua removido.
