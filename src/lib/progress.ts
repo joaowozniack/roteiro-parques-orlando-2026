@@ -1,9 +1,10 @@
 import { parks } from '../data/parks'
 import { preparationGroups } from '../data/preparation'
-import type { GuideState, Park, ParkProgress, Priority, StepStatus } from '../types'
+import type { ExtraGoalStatus, GuideState, Park, ParkProgress, Priority, StepStatus } from '../types'
 export const STORAGE_KEY = `orlando-guide:${import.meta.env.BASE_URL}:progress:v1`
 export const priorityLabels: Record<Priority, string> = { essential: 'Essencial', high: 'Alta prioridade', optional: 'Opcional' }
 export const statusLabels: Record<StepStatus, string> = { pending: 'Pendente', completed: 'Concluída', skipped: 'Pulada', later: 'Voltar depois' }
+export const goalStatusLabels: Record<ExtraGoalStatus, string> = { pending: 'Pendente', completed: 'Concluído', not_done: 'Não realizado' }
 export function initialProgress(park: Park): ParkProgress {
   return { order: park.steps.map(s => s.id), statuses: Object.fromEntries(park.steps.map(s => [s.id, 'pending'])), priorities: Object.fromEntries(park.steps.map(s => [s.id, s.priority])) }
 }
@@ -15,6 +16,7 @@ export function initialState(): GuideState {
     dining: Object.fromEntries(parks.map(p => [p.id, {}])),
     customTasks: Object.fromEntries(parks.map(p => [p.id, []])),
     globalChecklist: { checked: {}, customTasks: [] },
+    extraGoals: Object.fromEntries(parks.map(park => [park.id, Object.fromEntries((park.extraGoals ?? []).map(goal => [goal.id, 'pending']))])),
   }
 }
 const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -89,6 +91,19 @@ export function parseState(value: unknown): GuideState {
       checked[id] = value
     }
     result.globalChecklist = { checked, customTasks: tasks }
+  }
+  // Older snapshots have no extra-goal domain; initialize only the new goals.
+  if (value.extraGoals !== undefined) {
+    if (!object(value.extraGoals)) throw new Error('Os objetivos extras são inválidos.')
+    for (const [parkId, entries] of Object.entries(value.extraGoals)) {
+      const park = parks.find(park => park.id === parkId)
+      if (!park || !object(entries)) throw new Error('O arquivo contém objetivos de um parque inválido.')
+      const known = new Set(park.extraGoals?.map(goal => goal.id))
+      for (const [goalId, status] of Object.entries(entries)) {
+        if (!known.has(goalId) || typeof status !== 'string' || !Object.hasOwn(goalStatusLabels, status)) throw new Error('O arquivo contém um objetivo extra ou estado inválido.')
+        result.extraGoals[parkId][goalId] = status as ExtraGoalStatus
+      }
+    }
   }
   return result
 }

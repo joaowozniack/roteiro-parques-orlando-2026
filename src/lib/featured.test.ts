@@ -3,7 +3,7 @@ import { parks } from '../data/parks'
 import { initialState } from './progress'
 import { orlandoDay, selectFeaturedPark } from './featured'
 
-const islands = 'islands-of-adventure', magic = 'magic-kingdom'
+const islands = 'islands-of-adventure', magic = 'magic-kingdom', studios = 'universal-studios'
 describe('destaque da viagem', () => {
   it('exibe o primeiro parque antes da viagem e no dia da visita', () => {
     expect(selectFeaturedPark(parks, initialState(), '2026-10-20')?.id).toBe(islands)
@@ -25,9 +25,16 @@ describe('destaque da viagem', () => {
   it('mantém o último parque para revisão após todos concluírem ou após a última data', () => {
     const state = initialState()
     for (const progress of Object.values(state.parks)) for (const id of progress.order) progress.statuses[id] = 'completed'
-    expect(selectFeaturedPark(parks, state, '2026-10-20')?.id).toBe(magic)
-    expect(selectFeaturedPark(parks, state, '2026-11-02')?.id).toBe(magic)
-    expect(selectFeaturedPark(parks, initialState(), '2026-11-02')?.id).toBe(magic)
+    expect(selectFeaturedPark(parks, state, '2026-10-20')?.id).toBe(studios)
+    expect(selectFeaturedPark(parks, state, '2026-11-04')?.id).toBe(studios)
+    expect(selectFeaturedPark(parks, initialState(), '2026-11-04')?.id).toBe(studios)
+  })
+  it('avança para Studios em 02/11 ou após concluir os parques anteriores', () => {
+    const state = initialState()
+    expect(selectFeaturedPark(parks, state, '2026-11-02')?.id).toBe(studios)
+    expect(selectFeaturedPark(parks, state, '2026-11-03')?.id).toBe(studios)
+    for (const parkId of [islands, magic]) for (const id of state.parks[parkId].order) state.parks[parkId].statuses[id] = 'completed'
+    expect(selectFeaturedPark(parks, state, '2026-10-20')?.id).toBe(studios)
   })
   it('não altera a ordem cadastrada, ignora parques sem roteiro e lida com lista vazia', () => {
     const ids = parks.map(park => park.id)

@@ -1,6 +1,7 @@
 import type { Park, Region, ItineraryStep } from '../types'
 import { islandsDining, islandsPreparation } from './islands-extras'
 import { magicKingdom } from './magic-kingdom'
+import { universalStudios } from './universal-studios'
 
 const region = (id: string, name: string): Region => ({ id, name })
 const regions = {
@@ -32,11 +33,12 @@ export const parks: Park[] = [
       { name: 'Raptor Encounter', description: 'Confira a disponibilidade e os horários no local.' },
       { name: 'Ollivanders', description: 'Um pouco mais de magia no mundo de Harry Potter.' },
       { name: 'Lojas e cenários de Hogsmeade', description: 'Aproveite os detalhes e leve uma lembrança.' },
+      { name: 'Hogwarts Express — Experiência complementar', region: regions.hogsmeade, description: 'Possibilidade secundária de viajar de Hogsmeade a King’s Cross. O conteúdo temático muda em relação à viagem no sentido contrário. Depende de ingresso Park-to-Park válido, disponibilidade e horários de funcionamento. A preferência é usar o trem no dia do Studios, em 03/11. Não faz parte do roteiro principal nem é objetivo extra do Islands.' },
     ],
     unavailable: [{ name: 'Jurassic Park River Adventure', reason: 'Indicada como fechada para reforma no planejamento da viagem. Verifique a situação nas informações oficiais antes da visita.' }],
   },
   magicKingdom,
   { id: 'epic-universe', name: 'Universal Epic Universe', shortName: 'Epic Universe', resort: 'Universal Orlando Resort', description: 'Novos mundos, novas histórias.', accent: 'purple', steps: [], extras: [], unavailable: [] },
-  { id: 'universal-studios', name: 'Universal Studios Florida', shortName: 'Universal Studios', resort: 'Universal Orlando Resort', description: 'Entre nos seus filmes favoritos.', accent: 'blue', steps: [], extras: [], unavailable: [] },
+  universalStudios,
 ]
 export const activePark = parks[0]

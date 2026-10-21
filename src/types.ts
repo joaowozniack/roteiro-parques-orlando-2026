@@ -7,6 +7,14 @@ export interface ItineraryStep extends Attraction {
   number: number; kind: 'arrival' | 'attraction' | 'pause'; category: string;
   plannedTime?: string | null; positioning?: string;
   completionGroup?: string; countsTowardProgress?: boolean;
+  scheduleNote?: string; displayNumber?: string;
+}
+export type ExtraGoalStatus = 'pending' | 'completed' | 'not_done'
+export interface ExtraGoal {
+  id: string; title: string; description: string; region: Region;
+  steps: string[]; possibilities: string[]; conditions: string[];
+  possibilitiesTitle?: string; officialLabel?: string;
+  destinationParkId?: string; destinationLabel?: string; officialUrl?: string;
 }
 export interface PreparationTask { id: string; name: string; description?: string }
 export interface PreparationGroup { id: string; name: string; tasks: PreparationTask[] }
@@ -20,8 +28,10 @@ export interface Park {
   description: string; accent: string; steps: ItineraryStep[];
   arrival?: string; opening?: string; closing?: string;
   arrivalLabel?: string; transport?: string; queueTip?: string;
+  groupSize?: number; progressNote?: string; extraGoals?: ExtraGoal[];
   officialUrl?: string; passLabel?: string; queueAdvice?: string;
   preparation?: PreparationGroup[]; dining?: FoodOption[];
+  priceNotice?: string;
   extras: { name: string; description: string; region?: Region; priority?: Priority }[];
   unavailable: { name: string; reason: string }[];
 }
@@ -33,4 +43,5 @@ export interface GuideState {
   dining: Record<string, Record<string, boolean>>;
   customTasks: Record<string, PreparationTask[]>;
   globalChecklist: { checked: Record<string, boolean>; customTasks: PreparationTask[] };
+  extraGoals: Record<string, Record<string, ExtraGoalStatus>>;
 }

@@ -46,6 +46,7 @@ export const magicKingdom: Park = {
   passLabel: 'Sem Lightning Lane', queueAdvice: 'Sem depender de Single Rider',
   queueTip: 'Confira filas, manutenção e horários de shows no My Disney Experience. As referências do roteiro precisam de confirmação no dia.',
   transport: 'Monorail na ida · balsa na volta', steps, dining,
+  progressNote: 'TRON conta uma única vez, à tarde ou à noite. A repetição é opcional e a pausa para almoço fica fora do progresso.',
   extras: [
     { name: 'Jungle Cruise', region: regions.adventure, priority: 'high', description: 'Uma opção em Adventureland para encaixar se sobrar tempo.' },
     { name: 'Buzz Lightyear’s Space Ranger Spin', region: regions.tomorrow, priority: 'high', description: 'Atração interativa em Tomorrowland. Complementar, sem entrar automaticamente no roteiro principal.' },

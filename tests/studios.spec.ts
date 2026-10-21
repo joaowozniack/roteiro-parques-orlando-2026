@@ -1,0 +1,155 @@
+import { expect, test } from '@playwright/test'
+
+const route = './#/parque/universal-studios'
+const islands = './#/parque/islands-of-adventure'
+const goalId = 'goal-hogwarts-express-hogsmeade'
+const key = 'orlando-guide:/orlando-test/:progress:v1'
+let errors: string[] = []
+test.beforeEach(async ({ page }) => { await page.clock.setFixedTime(new Date('2026-10-20T12:00:00Z')); errors = []; page.on('pageerror', error => errors.push(error.message)) })
+test.afterEach(() => expect(errors).toEqual([]))
+
+test('Studios: roteiro na ordem, estratégias, Bourne sem horário fixo e reordenação persistida', async ({ page }) => {
+  await page.goto('./')
+  await page.getByRole('link', { name: 'Universal Studios Florida', exact: true }).click()
+  await expect(page.getByRole('tab')).toHaveCount(2)
+  await expect(page.getByText('Grupo de 8 pessoas', { exact: true })).toBeVisible()
+  await expect(page.locator('.day-facts')).toContainText('09h30')
+  await expect(page.locator('.day-facts')).toContainText('10h00')
+  await expect(page.locator('.day-facts')).toContainText('A confirmar')
+  await expect(page.locator('.step-card')).toHaveCount(12)
+  expect(await page.locator('.step-card').evaluateAll(elements => elements.map(element => element.id))).toEqual(['step-studios-arrival', 'step-gringotts', 'step-explore-diagon', 'step-men-in-black', 'step-simpsons', 'step-studios-lunch', 'step-et-adventure', 'step-bourne', 'step-minion-mayhem', 'step-transformers', 'step-mummy', 'step-jimmy-fallon'])
+  await expect(page.getByTestId('step-bourne').locator('.step-schedule')).toHaveText('Consulte as sessões no aplicativo oficial')
+  await expect(page.locator('.step-schedule')).not.toContainText(/\d{2}h\d{2}/)
+  await page.getByTestId('step-studios-arrival').getByRole('button', { name: /^Concluir / }).click()
+  await page.getByTestId('step-studios-lunch').getByRole('button', { name: /^Concluir / }).click()
+  await expect(page.getByRole('progressbar').first()).toHaveAttribute('aria-valuenow', '0')
+  await page.getByTestId('step-gringotts').getByRole('button', { name: /^Concluir / }).click()
+  await expect(page.getByRole('progressbar').first()).toHaveAttribute('aria-valuenow', '10')
+  await page.getByRole('button', { name: 'Reordenar', exact: true }).click()
+  await page.getByTestId('step-mummy').getByRole('button', { name: /para cima/ }).click()
+  await page.reload()
+  await expect(page.locator('.step-card').nth(9)).toHaveAttribute('data-testid', 'step-mummy')
+  await page.getByRole('button', { name: 'Restaurar ordem sugerida' }).click()
+  await expect(page.locator('.step-card').nth(10)).toHaveAttribute('data-testid', 'step-mummy')
+  await page.getByRole('button', { name: 'Essencial', exact: true }).click()
+  await expect(page.locator('.step-card')).toHaveCount(4)
+  await page.getByRole('button', { name: 'Todas', exact: true }).click()
+  await page.getByTestId('step-men-in-black').getByRole('button', { name: /^Expandir detalhes/ }).click()
+  await expect(page.getByTestId('step-men-in-black')).toContainText('grupo de oito pessoas poderá ser separado')
+})
+
+test('Hogwarts: três estados independentes, desfazer, reload e nenhum efeito no Islands', async ({ page }) => {
+  await page.goto(islands)
+  await page.getByTestId('step-velocicoaster').getByRole('button', { name: /^Concluir / }).click()
+  await page.getByTestId('step-hagrids').getByRole('button', { name: /^Voltar depois:/ }).click()
+  await page.goto(route)
+  const goal = page.getByTestId(goalId)
+  await expect(goal.getByRole('heading', { name: 'Objetivo extra — Hogwarts Express e Hogsmeade' })).toBeVisible()
+  await expect(goal.locator('.priority-badge')).toHaveCount(0)
+  await expect(goal).toContainText('Park-to-Park')
+  await expect(goal).toContainText('Hogsmeade')
+  await goal.getByRole('button', { name: 'Concluído', exact: true }).click()
+  await expect(page.getByRole('progressbar').first()).toHaveAttribute('aria-valuenow', '0')
+  await page.locator('.toast').getByRole('button', { name: 'Desfazer', exact: true }).click()
+  await expect(goal.getByRole('button', { name: 'Pendente', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await goal.getByRole('button', { name: 'Não realizado', exact: true }).click()
+  await page.reload()
+  await expect(goal.getByRole('button', { name: 'Não realizado', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await goal.getByRole('link', { name: 'Consultar roteiro do Islands' }).click()
+  await expect(page.getByTestId('step-velocicoaster')).toHaveClass(/status-completed/)
+  await expect(page.getByTestId('step-hagrids')).toHaveClass(/status-later/)
+  await expect(page.getByRole('progressbar').first()).toHaveAttribute('aria-valuenow', '9')
+  await expect(page.locator('.extra-goals')).toHaveCount(0)
+  const complementary = page.locator('.extras details').filter({ hasText: 'Hogwarts Express — Experiência complementar' })
+  await complementary.locator('summary').click()
+  await expect(complementary).toContainText('preferência é usar o trem no dia do Studios, em 03/11')
+})
+
+test('alimentação do Studios: preços a confirmar, pesquisa, regiões e marcações independentes', async ({ page }) => {
+  await page.goto(`${route}/alimentacao`)
+  await expect(page.locator('.food-card')).toHaveCount(5)
+  await expect(page.getByRole('tabpanel').locator('.priority-badge')).toHaveCount(0)
+  for (const price of await page.locator('.food-price strong').allTextContents()) { expect(price).toContain('confirmar'); expect(price).not.toMatch(/\d/) }
+  await page.getByRole('searchbox').fill('caldeirao')
+  await expect(page.getByTestId('food-leaky-cauldron')).toBeVisible()
+  await expect(page.locator('.food-card')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Limpar pesquisa de alimentação' }).click()
+  await page.getByLabel('Região do parque', { exact: true }).selectOption('springfield')
+  await expect(page.locator('.food-card')).toHaveCount(3)
+  await page.getByTestId('food-krusty-burger').getByRole('checkbox').check()
+  await page.reload()
+  await expect(page.getByTestId('food-krusty-burger').getByRole('checkbox')).toBeChecked()
+  await page.getByRole('tab', { name: 'Atrações', exact: true }).click()
+  await page.getByTestId('step-simpsons').getByRole('link', { name: 'Ver opções de alimentação em Springfield' }).click()
+  await expect(page.getByLabel('Região do parque', { exact: true })).toHaveValue('springfield')
+  await page.goto(`${islands}/alimentacao`)
+  await expect(page.getByRole('checkbox', { checked: true })).toHaveCount(0)
+})
+
+test('migração e backup incluem o objetivo sem perder o checklist nem o progresso existente', async ({ page }) => {
+  await page.goto(islands)
+  await page.getByTestId('step-arrival').getByRole('button', { name: /^Concluir / }).click()
+  await page.evaluate(storageKey => {
+    const state = JSON.parse(localStorage.getItem(storageKey)!)
+    state.parks['universal-studios'] = { order: [], statuses: {}, priorities: {} }
+    state.globalChecklist.checked.tickets = true
+    delete state.extraGoals
+    localStorage.setItem(storageKey, JSON.stringify(state))
+  }, key)
+  await page.goto(route)
+  await page.reload()
+  await expect(page.locator('.step-card')).toHaveCount(12)
+  const goal = page.getByTestId(goalId)
+  await expect(goal.getByRole('button', { name: 'Pendente', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await goal.getByRole('button', { name: 'Concluído', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Navegação móvel' }).getByRole('button', { name: 'Ferramentas', exact: true }).click()
+  const download = page.waitForEvent('download')
+  await page.getByRole('button', { name: 'Exportar roteiro e progresso' }).click()
+  const path = await (await download).path()
+  await page.getByRole('button', { name: 'Fechar ferramentas', exact: true }).click()
+  await goal.getByRole('button', { name: 'Não realizado', exact: true }).click()
+  await page.getByRole('navigation', { name: 'Navegação móvel' }).getByRole('button', { name: 'Ferramentas', exact: true }).click()
+  await page.locator('input[type=file]').setInputFiles(path!)
+  await expect(goal.getByRole('button', { name: 'Concluído', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await page.goto('./#/preparacao')
+  await expect(page.getByRole('checkbox', { name: 'Conferir ingressos.', exact: true })).toBeChecked()
+  await page.goto(islands)
+  await expect(page.getByTestId('step-arrival')).toHaveClass(/status-completed/)
+})
+
+test('Studios e objetivo extra funcionam offline após o primeiro carregamento', async ({ page, context }) => {
+  await page.goto(route)
+  await page.evaluate(async () => { await navigator.serviceWorker.ready })
+  await expect(page.locator('.connection')).toContainText('Pronto para usar offline', { timeout: 20000 })
+  await page.reload()
+  await context.setOffline(true)
+  await page.getByTestId('step-bourne').getByRole('button', { name: /^Concluir / }).click()
+  await page.getByTestId(goalId).getByRole('button', { name: 'Concluído', exact: true }).click()
+  await page.reload()
+  await expect(page.getByTestId('step-bourne')).toHaveClass(/status-completed/)
+  await expect(page.getByTestId(goalId).getByRole('button', { name: 'Concluído', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await page.getByRole('tab', { name: 'Alimentação', exact: true }).click()
+  await page.getByTestId('food-lard-lad').getByRole('checkbox').check()
+  await page.reload()
+  await expect(page.getByTestId('food-lard-lad').getByRole('checkbox')).toBeChecked()
+})
+
+test('Studios em destaque por data e layouts das novas telas', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-03T15:00:00Z'))
+  await page.goto('./')
+  await expect(page.locator('.featured-park h2')).toHaveText('Universal Studios Florida')
+  await expect(page.locator('.featured-step-count')).toContainText('10 etapas no progresso')
+  for (const width of [320, 390, 768, 1440]) {
+    await page.setViewportSize({ width, height: 900 })
+    for (const [name, path] of [['studios-home', './'], ['studios', route], ['studios-food', `${route}/alimentacao`]]) {
+      await page.goto(path)
+      await page.evaluate(() => window.scrollTo(0, 0))
+      await expect(page.locator('body')).toHaveJSProperty('scrollWidth', width)
+      if (width === 390 || width === 1440) await page.screenshot({ path: `test-results/${name}-${width}.png`, fullPage: true })
+      if (name === 'studios' && (width === 390 || width === 1440)) {
+        await page.getByTestId(goalId).scrollIntoViewIfNeeded()
+        await page.screenshot({ path: `test-results/studios-goal-${width}.png` })
+      }
+    }
+  }
+})

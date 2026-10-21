@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDown, ClipboardCheck, Utensils, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Clock3, Compass, Download, ExternalLink, Flag, House, Info, ListChecks, MapPin, Mountain, RotateCcw, Route, Settings2, ShieldCheck, SkipForward, Sparkles, Ticket, Upload, Waves, Wifi, WifiOff, X, Zap } from 'lucide-react'
+import { ArrowDown, Users, ClipboardCheck, Utensils, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Clock3, Compass, Download, ExternalLink, Flag, House, Info, ListChecks, MapPin, Mountain, RotateCcw, Route, Settings2, ShieldCheck, SkipForward, Sparkles, Ticket, Upload, Waves, Wifi, WifiOff, X, Zap } from 'lucide-react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import Preparation from './components/Preparation'
 import { orlandoDay, selectFeaturedPark } from './lib/featured'
 import Dining from './components/Dining'
+import ExtraGoals from './components/ExtraGoals'
 import { preparationGroups } from './data/preparation'
 import { activePark, parks, UNIVERSAL_URL } from './data/parks'
 import { exportState, importState, initialState, moveStep, itinerarySummary, parseState, priorityLabels, statusLabels, STORAGE_KEY } from './lib/progress'
-import type { GuideState, ItineraryStep, Park, PreparationTask, Priority, StepStatus } from './types'
+import type { ExtraGoalStatus, GuideState, ItineraryStep, Park, PreparationTask, Priority, StepStatus } from './types'
 
 type InstallEvent = Event & { prompt(): Promise<void>; userChoice: Promise<{ outcome: string }> }
 type Filter = 'all' | StepStatus
@@ -125,6 +126,9 @@ export default function App() {
     const tried = state.dining[currentPark.id]
     change({ ...state, dining: { ...state.dining, [currentPark.id]: { ...tried, [id]: !tried[id] } } }, tried[id] ? 'Opção desmarcada.' : 'Experiência gastronômica salva.')
   }
+  function setGoalStatus(id: string, status: ExtraGoalStatus) {
+    change({ ...state, extraGoals: { ...state.extraGoals, [currentPark.id]: { ...state.extraGoals[currentPark.id], [id]: status } } }, 'Objetivo extra atualizado. Você pode desfazer.')
+  }
   function undo() {
     const previous = history.at(-1)
     if (!previous) return
@@ -182,10 +186,10 @@ export default function App() {
           <div id="park-section-panel" role="tabpanel" aria-labelledby={`tab-${section}`}>
           {section === 'alimentacao' ? <Dining key={park.id} park={park} tried={state.dining[park.id]} region={foodRegion} onRegion={region => { location.hash = sectionPath('alimentacao', region) }} onToggle={toggleDining} /> : <div className="park-layout"><div className="itinerary-main">
             <div className="day-facts"><div><Flag size={18} /><span>{park.arrivalLabel ?? 'Na entrada'}<strong>{park.arrival ?? 'A definir'}</strong></span></div><div><Clock3 size={18} /><span>Abertura prevista<strong>{park.opening ?? 'A confirmar'}</strong></span></div><div><Mountain size={18} /><span>Fechamento previsto<strong>{park.closing ?? 'A confirmar'}</strong></span></div></div>
-            <div className="plan-info">{park.passLabel && <span><Ticket size={15} /> {park.passLabel}</span>}{park.queueAdvice && <span><Zap size={15} /> {park.queueAdvice}</span>}</div>
+            <div className="plan-info">{park.passLabel && <span><Ticket size={15} /> {park.passLabel}</span>}{park.queueAdvice && <span><Zap size={15} /> {park.queueAdvice}</span>}{park.groupSize && <span><Users size={15} /> Grupo de {park.groupSize} pessoas</span>}</div>
             {park.transport && <p className="transport-plan"><Route size={15} /> {park.transport}</p>}
             <p className="schedule-note"><Info size={14} /> Horários planejados, sujeitos à confirmação no <a href={currentPark.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">aplicativo oficial <ExternalLink size={11} /></a>.</p>
-            <section className="mobile-progress"><Progress completed={completed} total={total} /></section>{park.steps.some(step => step.completionGroup) && <p className="progress-help">TRON conta uma única vez, à tarde ou à noite. A repetição é opcional e a pausa para almoço fica fora do progresso.</p>}
+            <section className="mobile-progress"><Progress completed={completed} total={total} /></section>{park.progressNote && <p className="progress-help">{park.progressNote}</p>}
             <section id="roteiro" className="route-section">
               <div className="section-heading"><div><span className="eyebrow">UM DIA, MUITAS HISTÓRIAS</span><h2>Seu roteiro <span>{park.steps.length} etapas</span></h2></div><button className={`secondary compact ${reordering ? 'selected' : ''}`} onClick={() => setReordering(!reordering)} aria-pressed={reordering}><ArrowUpDown size={16} /> {reordering ? 'Finalizar' : 'Reordenar'}</button></div>
               <div className="filters" aria-label="Filtrar por prioridade">{(['all', 'essential', 'high', 'optional'] as const).map(value => <button key={value} aria-pressed={priorityFilter === value} className={`filter ${priorityFilter === value ? 'selected' : ''}`} onClick={() => setPriorityFilter(value)}>{value !== 'all' && <span className={`priority-dot ${value}`} />}{value === 'all' ? 'Todas' : priorityLabels[value]}</button>)}</div>
@@ -194,11 +198,12 @@ export default function App() {
               <div className="step-list">{(() => {
                 const ordered = progress.order.map(id => park.steps.find(s => s.id === id)!).filter(Boolean)
                 const next = ordered.find(s => s.id === itinerarySummary(park, progress).nextId)
-                const visible = ordered.filter(s => (priorityFilter === 'all' || (s.kind !== 'pause' && progress.priorities[s.id] === priorityFilter)) && (statusFilter === 'all' || progress.statuses[s.id] === statusFilter))
+                const visible = ordered.filter(s => (priorityFilter === 'all' || (s.kind !== 'pause' && s.countsTowardProgress !== false && progress.priorities[s.id] === priorityFilter)) && (statusFilter === 'all' || progress.statuses[s.id] === statusFilter))
                 return visible.length ? visible.map(step => <StepCard key={step.id} step={step} status={progress.statuses[step.id]} priority={progress.priorities[step.id]} next={next?.id === step.id} groupCompleted={!!step.completionGroup && park.steps.some(item => item.completionGroup === step.completionGroup && progress.statuses[item.id] === 'completed')} reordering={reordering} first={progress.order[0] === step.id} last={progress.order.at(-1) === step.id} onStatus={value => status(step.id, value)} foodLink={park.dining?.some(item => item.region.id === step.region.id) ? sectionPath('alimentacao', step.region.id) : undefined} onMove={direction => changePark(moveStep(progress, step.id, direction), 'Ordem atualizada.')} />) : <div className="empty-state"><ListChecks size={30} /><h3>Nenhuma etapa por aqui</h3><p>Experimente outra prioridade ou status.</p><button className="secondary" onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}>Limpar filtros</button></div>
               })()}</div>
             </section>
             <Extras park={park} />
+            <ExtraGoals park={park} statuses={state.extraGoals[park.id]} onStatus={setGoalStatus} />
           </div><aside className="day-sidebar"><div className="progress-panel"><span className="eyebrow">CADA ETAPA É UMA CONQUISTA</span><h3>Sua aventura, seu ritmo.</h3><Progress completed={completed} total={total} /><div className="summary-numbers"><div><strong>{total - completed}</strong><span>por explorar</span></div><div><strong>{laterCount}</strong><span>para voltar</span></div></div><p>Curta o caminho. Seu progresso é salvo automaticamente neste dispositivo.</p>{history.length > 0 && <button className="text-button" onClick={undo}><RotateCcw size={14} /> Desfazer última alteração</button>}</div><div className="tip-panel"><Sparkles size={20} /><h3>Uma dica de viagem</h3><p>{park.queueTip ?? 'Single Rider pode separar o grupo. Confira a disponibilidade e avalie se vale a pena em cada atração.'}</p><a href={currentPark.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">Abrir aplicativo oficial <ExternalLink size={13} /></a></div></aside></div>}
           </div>
         </> : <>
@@ -228,8 +233,8 @@ function StepCard({ step, status, priority, next, reordering, first, last, onSta
   const [expanded, setExpanded] = useState(step.number === 0)
   return <article id={`step-${step.id}`} className={`step-card priority-${priority} status-${status} ${next ? 'next-step' : ''}`} data-testid={`step-${step.id}`}>
     {next && <div className="next-label"><Route size={12} /> SUA PRÓXIMA ETAPA</div>}
-    <div className="step-top"><span className={`step-number ${status === 'completed' ? 'checked' : ''}`}>{status === 'completed' ? <Check size={19} /> : String(step.number).padStart(2, '0')}</span><div className="step-title"><div className="step-meta"><span><MapPin size={12} />{step.region.name}</span>{step.kind !== 'pause' && <span className={`priority-badge ${priority}`}>{priorityLabels[priority]}{step.conditional ? ` · ${step.conditional.toLocaleLowerCase('pt-BR')}` : ''}</span>}</div><h3>{step.name}</h3><span className="category">{step.category}</span></div></div>
-    {step.plannedTime !== undefined && <div className="step-schedule"><Clock3 size={14} /><span>{step.plannedTime === null ? 'Aguardando divulgação do horário' : `${step.plannedTime} · horário previsto`}{step.positioning && <small>Posicionamento: {step.positioning}</small>}</span></div>}
+    <div className="step-top"><span className={`step-number ${status === 'completed' ? 'checked' : ''}`}>{status === 'completed' ? <Check size={19} /> : step.displayNumber ?? String(step.number).padStart(2, '0')}</span><div className="step-title"><div className="step-meta"><span><MapPin size={12} />{step.region.name}</span>{step.kind !== 'pause' && step.countsTowardProgress !== false && <span className={`priority-badge ${priority}`}>{priorityLabels[priority]}{step.conditional ? ` · ${step.conditional.toLocaleLowerCase('pt-BR')}` : ''}</span>}</div><h3>{step.name}</h3><span className="category">{step.category}</span></div></div>
+    {step.plannedTime !== undefined && <div className="step-schedule"><Clock3 size={14} /><span>{step.plannedTime === null ? step.scheduleNote ?? 'Aguardando divulgação do horário' : `${step.plannedTime} · horário previsto`}{step.positioning && <small>Posicionamento: {step.positioning}</small>}</span></div>}
     {groupCompleted && status !== 'completed' && <p className="repeat-note"><CheckCheck size={14} /> TRON já concluída em outra oportunidade. Repetir é opcional.</p>}
     <div className="queue-summary"><Route size={15} /><span>{step.queue.label}</span></div>
     {status !== 'pending' && <div className={`status-label ${status}`}>{status === 'completed' ? <CheckCheck size={14} /> : status === 'later' ? <RotateCcw size={14} /> : <SkipForward size={14} />}{statusLabels[status]}{status !== 'completed' && <button onClick={() => onStatus('pending')}>Retomar etapa</button>}</div>}
