@@ -25,7 +25,7 @@ const steps: ItineraryStep[] = [
 ]
 
 export const UNIVERSAL_URL = 'https://www.universalorlando.com/web/en/us/landing-page/mobile-app'
-export const parks: Park[] = [
+const registeredParks: Park[] = [
   { id: 'islands-of-adventure', name: 'Universal Islands of Adventure', shortName: 'Islands of Adventure', resort: 'Universal Orlando Resort', date: '2026-10-30', description: 'Dinossauros, magia e uma boa dose de adrenalina. Seu dia de aventura está planejado.', accent: 'teal', arrival: '08h30', opening: '09h00', closing: '20h00', officialUrl: UNIVERSAL_URL, passLabel: 'Sem Express Pass', queueAdvice: 'Single Rider quando compensar', steps,
     preparation: islandsPreparation, dining: islandsDining,
     extras: [
@@ -39,7 +39,8 @@ export const parks: Park[] = [
     unavailable: [{ name: 'Jurassic Park River Adventure', reason: 'Indicada como fechada para reforma no planejamento da viagem. Verifique a situação nas informações oficiais antes da visita.' }],
   },
   magicKingdom,
-  epicUniverse,
   universalStudios,
+  epicUniverse,
 ]
+export const parks = [...registeredParks].sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'))
 export const activePark = parks[0]
