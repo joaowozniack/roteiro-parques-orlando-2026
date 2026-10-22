@@ -7,7 +7,7 @@ Roteiros disponíveis:
 - **Islands of Adventure — 30/10/2026.** Roteiro e alimentação originais preservados.
 - **Magic Kingdom — 01/11/2026.** Atrações, transporte e alimentação cadastrados.
 - **Universal Studios Florida — 03/11/2026.** Roteiro, alimentação e objetivo extra do Hogwarts Express.
-- Epic Universe aguarda cadastro.
+- **Universal Epic Universe — 05/11/2026.** Roteiro flexível, estratégia de filas, complementares e alimentação.
 
 ## Rodar e gerar o build
 
@@ -48,7 +48,7 @@ A aba Preparação foi removida dos parques. Endereços antigos, como `#/parque/
 
 ## Atrações e alimentação
 
-O destaque da tela inicial acompanha o **calendário de Orlando (America/New_York)** e o progresso. Mostra o parque do dia ou o próximo agendado ainda não concluído; atingir 100% adianta o próximo parque, mesmo antes da data. Assim, Islands aparece antes e em 30/10; Magic passa ao destaque ao concluir Islands ou a partir de 31/10, no intervalo até sua visita em 01/11. Studios entra em destaque a partir de 02/11 ou antes, se os parques anteriores chegarem a 100%. A virada do dia é conferida automaticamente e ao voltar ao app, inclusive offline.
+O destaque da tela inicial acompanha o **calendário de Orlando (America/New_York)** e o progresso. Mostra o parque do dia ou o próximo agendado ainda não concluído; atingir 100% adianta o próximo parque, mesmo antes da data. Assim, Islands aparece antes e em 30/10; Magic passa ao destaque ao concluir Islands ou a partir de 31/10, no intervalo até sua visita em 01/11. Studios entra em destaque a partir de 02/11 ou antes, se os parques anteriores chegarem a 100%. Epic entra a partir de 04/11 ou ao concluir os três parques anteriores. A virada do dia é conferida automaticamente e ao voltar ao app, inclusive offline.
 
 Parques anteriores continuam acessíveis nos cartões menores com seu progresso intacto. Quando todos os próximos roteiros estiverem concluídos, o último permanece em destaque com “Rever roteiro”; parques aguardando cadastro não são promovidos. Nada reinicia o checklist ou o progresso durante essa troca. Os atalhos da tela inicial e o painel “O próximo destino” acompanham o novo destaque.
 
@@ -91,6 +91,14 @@ O objetivo tem estado próprio: **Pendente**, **Concluído** ou **Não realizado
 
 No **Islands**, o trem foi acrescentado somente a **Se sobrar tempo**, sem alterar suas 11 etapas ou o progresso. O cartão informa que o conteúdo da viagem difere no sentido contrário e que o planejamento prefere usar o trem no dia do Studios, em 03/11. Não existe objetivo extra do Islands.
 
+### Universal Epic Universe
+
+Visita em **05/11/2026**, grupo de oito pessoas. Chegada às **09h00 no estacionamento**, abertura geral prevista às **10h00**, fechamento a consultar na programação oficial. A estratégia do dia orienta consultar as filas no aplicativo oficial e reorganizar manualmente, sem dados simulados ou limites obrigatórios de espera.
+
+São **14 cartões e 11 experiências únicas**: chegada e almoço ficam fora do progresso; Stardust Racers conta uma única vez, com uma segunda volta noturna opcional. As apresentações não têm horários inventados. Se Universal Celestial Goodnight não acontecer, **Marcar indisponível** o retira do total (10 experiências), sem considerá-lo concluído. Retomar ou desfazer recoloca o espetáculo na contagem. Pular não retira atrações da contagem.
+
+Mario Kart, Mine-Cart Madness e Battle at the Ministry têm recomendações nos detalhes; Battle também permite antecipar a visita conforme uma fila favorável. As cinco experiências complementares ficam separadas. Os oito estabelecimentos reutilizam pesquisa, filtros e marcações independentes, todos com preços a confirmar. Campos de espera e anotações continuam fora do escopo conforme o pedido inicial.
+
 ## Persistência, migração e backups
 
 A chave anterior é mantida: `orlando-guide:/CAMINHO/:progress:v1` (na raiz, `orlando-guide:/:progress:v1`). Salvar é imediato e automático; a última gravação entre abas da mesma instalação prevalece. Se o armazenamento falhar, o guia avisa para exportar um backup.
@@ -100,6 +108,7 @@ A migração é aditiva:
 - `parks` preserva status, prioridades salvas e ordem de cada parque. O Magic Kingdom ganha apenas seus próprios valores iniciais.
 - `dining` mantém as marcações de alimentação por parque.
 - `extraGoals` guarda os estados dos objetivos extras por parque. Snapshots antigos sem esse domínio ganham apenas os novos objetivos em estado Pendente; os dados existentes não são apagados.
+- O antigo cadastro vazio de `epic-universe` recebe suas etapas e alimentação sem sobrescrever outros parques, checklist ou objetivos extras. O status Indisponível é aceito somente nas etapas explicitamente habilitadas para isso.
 - O antigo cadastro vazio de `universal-studios` recebe suas novas etapas sem alterar os registros do Islands, Magic ou checklist geral.
 - `globalChecklist` passa a conter marcações e tarefas pessoais compartilhadas.
 - Ao ler um snapshot sem `globalChecklist`, as tarefas pessoais do Islands e as marcações de tarefas correspondentes são copiadas para o checklist geral. IDs equivalentes foram mantidos.
@@ -112,13 +121,15 @@ Não há sincronização entre celulares. Exporte em um dispositivo e importe em
 
 ## Offline e instalação
 
-O PWA usa Workbox via `vite-plugin-pwa`, com precache dos dados embutidos, arquivos, ícones e ilustração locais. Não usa CDN para funções essenciais. Após o primeiro carregamento online completo, aguarde **Pronto para usar offline**. O checklist geral e os três parques podem ser recarregados e usados offline. Links oficiais dependem de internet.
+O PWA usa Workbox via `vite-plugin-pwa`, com precache dos dados embutidos, arquivos, ícones e ilustração locais. Não usa CDN para funções essenciais. Após o primeiro carregamento online completo, aguarde **Pronto para usar offline**. O checklist geral e os quatro parques podem ser recarregados e usados offline. Links oficiais dependem de internet.
 
 No iPhone: Safari → Compartilhar → Adicionar à Tela de Início. No Android: Chrome → Instalar app/Adicionar à tela inicial, ou o botão em Ferramentas quando disponível. A instalação é opcional. Teste em modo avião antes da visita e mantenha backup; o sistema pode remover caches por falta de espaço.
 
 ## Estrutura
 
 - `src/data/parks.ts`: cadastro dos parques e roteiro original do Islands.
+- `src/data/epic-universe.ts`: roteiro, estratégia, complementares e alimentação do Epic.
+- `src/strategy.css`: estratégia do dia, avisos e apresentação indisponível.
 - `src/data/universal-studios.ts`: roteiro, alimentação, complementares e objetivo extra do Studios.
 - `src/components/ExtraGoals.tsx` e `src/goals.css`: cartões reutilizáveis de objetivo extra, sem categorias de prioridade.
 - `src/data/magic-kingdom.ts`: roteiro, alimentação, horários previstos/nulos e complementares do Magic.
@@ -126,7 +137,7 @@ No iPhone: Safari → Compartilhar → Adicionar à Tela de Início. No Android:
 - `src/data/islands-extras.ts`: alimentação do Islands e checklist antigo mantido para migração.
 - `src/lib/progress.ts`: validação, migração, backups, reordenação e contagem de etapas únicas.
 - `src/components/Preparation.tsx`: checklist geral e edição de tarefas pessoais.
-- `src/components/Dining.tsx`: alimentação reutilizada pelos três parques.
+- `src/components/Dining.tsx`: alimentação reutilizada pelos quatro parques.
 - `src/App.tsx`, `src/styles.css`, `src/sections.css`, `src/trip.css`: interface e navegação.
 
 Para cadastrar novos parques, use um ID estável e acrescente dados ao array `parks`. Regiões, estratégias e alimentação são dados; os componentes são compartilhados. Objetivos extras são dados no array `Park.extraGoals` e usam estados separados em `GuideState.extraGoals`. Títulos de possibilidades, links, condições e parque de destino ficam nos dados. Pausas usam `kind: 'pause'`; oportunidades repetidas usam o mesmo `completionGroup`; horários não confirmados devem ser `null`, nunca inventados.

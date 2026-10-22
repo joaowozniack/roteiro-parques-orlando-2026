@@ -25,9 +25,9 @@ describe('destaque da viagem', () => {
   it('mantém o último parque para revisão após todos concluírem ou após a última data', () => {
     const state = initialState()
     for (const progress of Object.values(state.parks)) for (const id of progress.order) progress.statuses[id] = 'completed'
-    expect(selectFeaturedPark(parks, state, '2026-10-20')?.id).toBe(studios)
-    expect(selectFeaturedPark(parks, state, '2026-11-04')?.id).toBe(studios)
-    expect(selectFeaturedPark(parks, initialState(), '2026-11-04')?.id).toBe(studios)
+    expect(selectFeaturedPark(parks, state, '2026-10-20')?.id).toBe('epic-universe')
+    expect(selectFeaturedPark(parks, state, '2026-11-04')?.id).toBe('epic-universe')
+    expect(selectFeaturedPark(parks, initialState(), '2026-11-04')?.id).toBe('epic-universe')
   })
   it('avança para Studios em 02/11 ou após concluir os parques anteriores', () => {
     const state = initialState()

@@ -1,5 +1,5 @@
 export type Priority = 'essential' | 'high' | 'optional'
-export type StepStatus = 'pending' | 'completed' | 'skipped' | 'later'
+export type StepStatus = 'pending' | 'completed' | 'skipped' | 'later' | 'unavailable'
 export interface Region { id: string; name: string }
 export interface QueueStrategy { label: string; detail: string }
 export interface Attraction { id: string; name: string; region: Region; priority: Priority; queue: QueueStrategy; tips: string[]; conditional?: string }
@@ -8,6 +8,8 @@ export interface ItineraryStep extends Attraction {
   plannedTime?: string | null; positioning?: string;
   completionGroup?: string; countsTowardProgress?: boolean;
   scheduleNote?: string; displayNumber?: string;
+  canMarkUnavailable?: boolean; repeatNote?: string; repeatLabel?: string;
+  detailNotice?: string; detailWarning?: string;
 }
 export type ExtraGoalStatus = 'pending' | 'completed' | 'not_done'
 export interface ExtraGoal {
@@ -32,6 +34,7 @@ export interface Park {
   officialUrl?: string; passLabel?: string; queueAdvice?: string;
   preparation?: PreparationGroup[]; dining?: FoodOption[];
   priceNotice?: string;
+  strategy?: { title: string; paragraphs: string[]; reminder: string };
   extras: { name: string; description: string; region?: Region; priority?: Priority }[];
   unavailable: { name: string; reason: string }[];
 }

@@ -1,6 +1,7 @@
 import type { Park, Region, ItineraryStep } from '../types'
 import { islandsDining, islandsPreparation } from './islands-extras'
 import { magicKingdom } from './magic-kingdom'
+import { epicUniverse } from './epic-universe'
 import { universalStudios } from './universal-studios'
 
 const region = (id: string, name: string): Region => ({ id, name })
@@ -38,7 +39,7 @@ export const parks: Park[] = [
     unavailable: [{ name: 'Jurassic Park River Adventure', reason: 'Indicada como fechada para reforma no planejamento da viagem. Verifique a situação nas informações oficiais antes da visita.' }],
   },
   magicKingdom,
-  { id: 'epic-universe', name: 'Universal Epic Universe', shortName: 'Epic Universe', resort: 'Universal Orlando Resort', description: 'Novos mundos, novas histórias.', accent: 'purple', steps: [], extras: [], unavailable: [] },
+  epicUniverse,
   universalStudios,
 ]
 export const activePark = parks[0]

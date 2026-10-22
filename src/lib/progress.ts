@@ -3,7 +3,7 @@ import { preparationGroups } from '../data/preparation'
 import type { ExtraGoalStatus, GuideState, Park, ParkProgress, Priority, StepStatus } from '../types'
 export const STORAGE_KEY = `orlando-guide:${import.meta.env.BASE_URL}:progress:v1`
 export const priorityLabels: Record<Priority, string> = { essential: 'Essencial', high: 'Alta prioridade', optional: 'Opcional' }
-export const statusLabels: Record<StepStatus, string> = { pending: 'Pendente', completed: 'Concluída', skipped: 'Pulada', later: 'Voltar depois' }
+export const statusLabels: Record<StepStatus, string> = { pending: 'Pendente', completed: 'Concluída', skipped: 'Pulada', later: 'Voltar depois', unavailable: 'Indisponível' }
 export const goalStatusLabels: Record<ExtraGoalStatus, string> = { pending: 'Pendente', completed: 'Concluído', not_done: 'Não realizado' }
 export function initialProgress(park: Park): ParkProgress {
   return { order: park.steps.map(s => s.id), statuses: Object.fromEntries(park.steps.map(s => [s.id, 'pending'])), priorities: Object.fromEntries(park.steps.map(s => [s.id, s.priority])) }
@@ -33,6 +33,7 @@ export function parseState(value: unknown): GuideState {
     progress.order = [...importedOrder, ...progress.order.filter(s => !importedOrder.includes(s))]
     for (const [key, status] of Object.entries(raw.statuses)) {
       if (!known.has(key) || typeof status !== 'string' || !Object.hasOwn(statusLabels, status)) throw new Error('O arquivo contém um status inválido.')
+      if (status === 'unavailable' && !park.steps.find(step => step.id === key)?.canMarkUnavailable) throw new Error('Esta etapa não permite o status indisponível.')
       progress.statuses[key] = status as StepStatus
     }
     for (const [key, priority] of Object.entries(raw.priorities)) {
@@ -125,7 +126,7 @@ export function moveStep(progress: ParkProgress, id: string, direction: -1 | 1):
 }
 
 export function itinerarySummary(park: Park, progress: ParkProgress) {
-  const counted = park.steps.filter(step => step.kind !== 'pause' && step.countsTowardProgress !== false)
+  const counted = park.steps.filter(step => step.kind !== 'pause' && step.countsTowardProgress !== false && !(step.canMarkUnavailable && progress.statuses[step.id] === 'unavailable'))
   const group = (step: typeof counted[number]) => step.completionGroup ?? step.id
   const groups = new Set(counted.map(group))
   const done = new Set(counted.filter(step => progress.statuses[step.id] === 'completed').map(group))

@@ -5,5 +5,6 @@ import './styles.css'
 import './sections.css'
 import './trip.css'
 import './goals.css'
+import './strategy.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>)
