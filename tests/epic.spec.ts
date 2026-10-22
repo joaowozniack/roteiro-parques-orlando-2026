@@ -79,7 +79,7 @@ test('alimentação, backup e migração preservam os quatro parques e checklist
   await page.getByRole('button', { name: 'Todos', exact: true }).click()
   await page.getByRole('searchbox').fill('mead')
   await page.getByTestId('food-mead-hall').getByRole('checkbox').check()
-  await page.getByRole('navigation', { name: 'Navegação móvel' }).getByRole('button', { name: 'Ferramentas', exact: true }).click()
+  await page.getByRole('button', { name: 'Abrir ferramentas da viagem', exact: true }).click()
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Exportar roteiro e progresso' }).click()
   const path = await (await download).path()

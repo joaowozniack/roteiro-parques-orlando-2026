@@ -38,7 +38,7 @@ export const tripDays: TripDay[] = [
   ] },
   { id: '2026-11-03', date: '2026-11-03', title: 'Universal Studios Florida e CityWalk', region: 'Orlando', category: 'park', activities: [
     { id: 'visit-studios', name: 'Visitar Universal Studios Florida', category: 'park', linkedParkId: 'universal-studios' },
-    { id: 'try-hogwarts', name: 'Tentar utilizar Hogwarts Express até Hogsmeade', description: 'Objetivo extra, sujeito à operação, às filas, ao ingresso válido e aos horários dos dois parques.', notes: 'Confira as condições no objetivo extra do roteiro do Studios. Esta atividade é opcional e não conta no progresso do dia.', category: 'outing', optional: true },
+    { id: 'try-hogwarts', name: 'Tentar utilizar Hogwarts Express até Hogsmeade', description: 'Objetivo extra, sujeito à operação, às filas, ao ingresso válido e aos horários dos dois parques.', notes: 'Confira as condições no objetivo extra do roteiro do Studios. Esta experiência é opcional.', category: 'outing', optional: true },
     { id: 'citywalk', name: 'Passeio no Universal CityWalk', category: 'outing' },
   ] },
   { id: '2026-11-04', date: '2026-11-04', title: 'Compras e BoardWalk', region: 'Orlando', category: 'shopping', activities: [
@@ -47,7 +47,7 @@ export const tripDays: TripDay[] = [
   ] },
   { id: '2026-11-05', date: '2026-11-05', title: 'Epic Universe e Port Orleans', region: 'Orlando', category: 'park', activities: [
     { id: 'visit-epic', name: 'Visitar Universal Epic Universe', category: 'park', linkedParkId: 'epic-universe' },
-    { id: 'port-orleans', name: 'Passeio noturno pelo Disney’s Port Orleans Resort', notes: 'Planejado para a noite, condicionado à disposição do grupo após o parque. Opcional; não conta no progresso do dia.', category: 'outing', optional: true },
+    { id: 'port-orleans', name: 'Passeio noturno pelo Disney’s Port Orleans Resort', notes: 'Planejado para a noite, condicionado à disposição do grupo após o parque. Passeio opcional.', category: 'outing', optional: true },
   ] },
   { id: '2026-11-06', date: '2026-11-06', title: 'Viagem para Miami', region: 'Orlando → Miami', category: 'travel', activities: [
     { id: 'orlando-checkout', name: 'Check-out da hospedagem em Orlando', category: 'stay' },

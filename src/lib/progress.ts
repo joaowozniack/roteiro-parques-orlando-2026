@@ -1,5 +1,4 @@
 import { tripDays } from '../data/travel'
-import { parseTripProgress } from './travel'
 import { parks } from '../data/parks'
 import { preparationGroups } from '../data/preparation'
 import type { ExtraGoalStatus, GuideState, Park, ParkProgress, Priority, StepStatus } from '../types'
@@ -13,7 +12,6 @@ export function initialProgress(park: Park): ParkProgress {
 export function initialState(): GuideState {
   return {
     version: 1,
-    trip: { days: {} },
     parks: Object.fromEntries(parks.map(p => [p.id, initialProgress(p)])),
     preparation: Object.fromEntries(parks.map(p => [p.id, {}])),
     dining: Object.fromEntries(parks.map(p => [p.id, {}])),
@@ -109,7 +107,7 @@ export function parseState(value: unknown): GuideState {
       }
     }
   }
-  result.trip = parseTripProgress(value.trip)
+  // Legacy daily activity edits/progress are intentionally ignored.
   return result
 }
 export function importState(text: string): GuideState {

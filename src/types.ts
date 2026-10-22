@@ -41,15 +41,9 @@ export interface Park {
 export interface ParkProgress { order: string[]; statuses: Record<string, StepStatus>; priorities: Record<string, Priority> }
 export type LinkedParkId = 'islands-of-adventure' | 'magic-kingdom' | 'universal-studios' | 'epic-universe'
 export type ActivityCategory = 'travel' | 'stay' | 'shopping' | 'outing' | 'park' | 'food' | 'event'
-export type ActivityStatus = 'pending' | 'completed' | 'skipped'
 export interface ActivityFields { name: string; description?: string; time?: string; location?: string; category: ActivityCategory; notes?: string }
 export interface TripActivity extends ActivityFields { id: string; linkedParkId?: LinkedParkId; optional?: boolean }
 export interface TripDay { id: string; date: string; title: string; region: string; category: ActivityCategory; notes?: string; activities: TripActivity[] }
-export interface TripDayProgress {
-  order?: string[]; statuses: Record<string, ActivityStatus>; edits: Record<string, Partial<ActivityFields>>;
-  customActivities: TripActivity[]; hidden: string[];
-}
-export interface TripProgress { selectedDay?: string; viewedOn?: string; days: Record<string, TripDayProgress> }
 export interface GuideState {
   version: 1;
   parks: Record<string, ParkProgress>;
@@ -58,5 +52,4 @@ export interface GuideState {
   customTasks: Record<string, PreparationTask[]>;
   globalChecklist: { checked: Record<string, boolean>; customTasks: PreparationTask[] };
   extraGoals: Record<string, Record<string, ExtraGoalStatus>>;
-  trip: TripProgress;
 }

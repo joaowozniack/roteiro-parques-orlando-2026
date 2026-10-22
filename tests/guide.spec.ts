@@ -43,7 +43,7 @@ test('guia móvel: progresso, filtros, prioridades, reordenação, backup e desf
   await expect(velo).toHaveClass(/status-skipped/)
   await page.locator('.toast').getByRole('button', { name: 'Desfazer', exact: true }).click()
   await expect(velo).toHaveClass(/status-pending/)
-  await page.getByRole('navigation', { name: 'Navegação móvel' }).getByRole('button', { name: 'Ferramentas' }).click()
+  await page.getByRole('button', { name: 'Abrir ferramentas da viagem', exact: true }).click()
   const download = page.waitForEvent('download')
   await page.getByRole('button', { name: 'Exportar roteiro e progresso' }).click()
   const file = await download
@@ -102,7 +102,7 @@ test('layouts estreito e amplo, sem transbordamento horizontal', async ({ page }
 test('importação inválida preserva o progresso e Escape fecha as ferramentas', async ({ page }) => {
   await page.goto('./#/parque/islands-of-adventure')
   await page.getByTestId('step-arrival').getByRole('button', { name: 'Concluir A aventura começa aqui', exact: true }).click()
-  await page.getByRole('navigation', { name: 'Navegação móvel' }).getByRole('button', { name: 'Ferramentas' }).click()
+  await page.getByRole('button', { name: 'Abrir ferramentas da viagem', exact: true }).click()
   await page.locator('input[type=file]').setInputFiles({ name: 'invalido.json', mimeType: 'application/json', buffer: Buffer.from('{"app":"other"}') })
   await expect(page.getByRole('status')).toContainText('Escolha um arquivo exportado')
   await page.keyboard.press('Escape')
