@@ -36,6 +36,10 @@ Para uma instalação nova: em Settings → Pages → Build and deployment → S
 
 No celular, conecte-se à internet e toque em **Atualizar** quando o guia avisar que a nova versão está pronta. O progresso continua no mesmo armazenamento; não é necessário limpar os dados do navegador.
 
+## Tema claro e escuro
+
+O botão de sol/lua no cabeçalho alterna entre os modos claro e escuro em qualquer tela. O modo escuro original continua sendo o padrão. A preferência é salva separadamente em `orlando-guide:/CAMINHO/:theme:v1`, sem alterar o progresso, e permanece disponível offline. As capas ilustradas mantêm a cena noturna e o texto claro para preservar o contraste. A escolha de tema é local e não faz parte do backup do roteiro.
+
 ## Checklist geral
 
 A tela inicial e a navegação oferecem **Checklist geral de preparação**, em `#/preparacao`. Ele é compartilhado pelos quatro parques e representa a preparação para o **próximo dia de parque**, sem criar histórico por data.

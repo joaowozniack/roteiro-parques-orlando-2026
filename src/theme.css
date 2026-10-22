@@ -1,0 +1,84 @@
+/* Loaded last: preserve the original night palette and illustrated park covers. */
+:root[data-theme='light'] {
+  color-scheme:light; color:#192d43; background:#f3f6fa;
+  --bg:#f3f6fa; --panel:#fff; --line:#d6e0e9; --muted:#53677c;
+  --teal:#08765e; --coral:#b73c40; --amber:#946015; --blue:#3d6895;
+}
+.theme-toggle { flex-shrink:0; }
+.top-actions>.theme-toggle { display:grid; }
+:root[data-theme='light'] :is(.sidebar,.topbar,.footer,.mobile-nav) { border-color:var(--line); }
+:root[data-theme='light'] .sidebar { background:#fff; }
+:root[data-theme='light'] .mobile-nav { background:#fffffff5; }
+:root[data-theme='light'] :is(.brand-year,.nav-caption,.sidebar nav a,.sidebar nav button,.sidebar-trip>span:not(.eyebrow),.sidebar-trip small,.sidebar-bottom>.text-button,.sidebar-bottom>span,.breadcrumb,.breadcrumb span:last-child,.welcome>.eyebrow,.welcome>p,.trip-meta,.upcoming-park p,.upcoming-park .resort-label,.not-planned,.soon-label,.travel-tip p,.footer,.mobile-nav>a,.mobile-nav>button,.text-button,.back-link,.plan-info span,.schedule-note,.route-section .section-heading h2>span,.status-filter label,.step-meta>span:first-child,.category,.queue-summary,.step-details,.status-label,.reorder-actions>span,.progress-label,.summary-numbers span,.progress-panel>p,.tip-panel,.tip-panel a,.extra-list p,.unavailable,.unavailable p,.unavailable strong,.unavailable a,.tools-dialog>p,.install-panel p,.official-link,.section-intro,.group-count,.preparation-task small,.personal-tasks form>label,.checklist-reset p,.food-card-meta>div>span:last-child,.food-description,.food-price>span,.food-note,.food-tried-control>small,.food-region-filter>label,.food-region-filter>span,.food-footer-note,.progress-help,.transport-plan,.extra-region,.availability-control small) { color:#53677c; }
+:root[data-theme='light'] :is(.outline-year,.day-facts strong,.unavailable h3,.empty-state h3,.preparation-task strong,.food-card-meta>div>span:first-child,.food-recommendation>p,.food-price>strong,.food-tried-control>span) { color:#203950; }
+:root[data-theme='light'] :is(.sidebar-trip,.upcoming-park,.travel-tip,.step-card,.extra-list,.tools-dialog,.preparation-group,.personal-tasks,.food-card) { background:#fff; border-color:#d3dee9; box-shadow:0 4px 18px #1a3b5805; }
+:root[data-theme='light'] :is(.checklist-entry,.preparation-summary,.progress-panel,.mobile-progress) { background:linear-gradient(120deg,#e4f4ef,#f9fcfb); border-color:#b9d8cd; }
+:root[data-theme='light'] :is(.checklist-entry p,.preparation-summary>p,.progress-panel .eyebrow,.offline-status,.connection) { color:#326859; }
+:root[data-theme='light'] :is(.sidebar nav .active,.mobile-nav .active,.text-button:hover,.sidebar-bottom>.text-button:hover) { color:var(--teal); }
+:root[data-theme='light'] :is(.brand-mark,.tip-icon,.checklist-entry-icon) { background:#e5f5ef; border-color:#bbdfd2; color:var(--teal); }
+:root[data-theme='light'] .checklist-entry>svg { color:var(--teal); }
+:root[data-theme='light'] .park-symbol { color:#486d93; }
+:root[data-theme='light'] .gold .park-symbol { color:#8b651d; }
+:root[data-theme='light'] .purple .park-symbol { color:#76519c; }
+:root[data-theme='light'] :is(.soon-label,.inline-count,.icon-button,select,.secondary,.filter,.food-type-filters>button,.reorder-actions button,.goal-status-buttons>button) { background:#fff; color:#405a73; border-color:#bacbda; }
+:root[data-theme='light'] :is(.secondary:hover,.icon-button:hover,.park-tabs>a:hover) { background:#edf3f8; }
+:root[data-theme='light'] :is(.filter.selected,.secondary.selected,.park-tabs>a.selected) { background:#e0f3ec; color:#08634e; border-color:#91c9b5; }
+:root[data-theme='light'] .park-tabs { background:#f9fbfdf5; border-color:#c8d6e2; }
+:root[data-theme='light'] .park-tabs>a { color:#53677c; }
+:root[data-theme='light'] .primary { background:#08765e; color:#fff; }
+:root[data-theme='light'] .primary:hover { background:#075f4c; }
+:root[data-theme='light'] :is(.progress-track,.mini-progress) { background:#d5e4de; }
+:root[data-theme='light'] :is(.summary-numbers,.summary-numbers>div+div,.step-details,.step-actions,.extra-list details+details,.not-planned,.food-tried-control,.nearby-food-link,.preparation-task,.personal-task-list .preparation-task:last-child,.availability-control) { border-color:#dde5ec; }
+:root[data-theme='light'] .step-card.priority-essential { border-left-color:#bd4549; }
+:root[data-theme='light'] .step-card.priority-high { border-left-color:#ae7a28; }
+:root[data-theme='light'] .step-card.priority-optional { border-left-color:#7697b5; }
+:root[data-theme='light'] .step-card.next-step { background:linear-gradient(120deg,#edf9f4,#fff); border-color:#77bfa8; border-left-color:#08765e; }
+:root[data-theme='light'] .step-number { background:#edf2f7; border-color:#cfdae5; color:#4c647b; }
+:root[data-theme='light'] :is(.next-step .step-number,.step-number.checked) { background:#dbf1e7; border-color:#9bcfba; color:#07654f; }
+:root[data-theme='light'] .priority-badge { background:#e8f0fa; color:#375f89; }
+:root[data-theme='light'] .priority-badge.essential { background:#fce8e7; color:#a52f36; }
+:root[data-theme='light'] .priority-badge.high { background:#fbefd6; color:#855509; }
+:root[data-theme='light'] .step-actions>button { color:#4e667e; }
+:root[data-theme='light'] .step-actions .complete-button { background:#e1f3e9; color:#096246; border-color:#abd4bf; }
+:root[data-theme='light'] .step-actions .is-complete { background:#ccebdc; color:#07593f; }
+:root[data-theme='light'] .step-card.status-completed { background:#edf8f1; border-color:#b1d6c1; }
+:root[data-theme='light'] :is(.status-label.completed,.repeat-note,.nearby-food-link) { color:#24664e; }
+:root[data-theme='light'] :is(.status-label.later,.status-label.unavailable) { color:#6c478e; }
+:root[data-theme='light'] .step-actions .later-button.is-later { background:#eee6fa; color:#68438e; }
+:root[data-theme='light'] .ready-park-link { color:#785618; }
+:root[data-theme='light'] .ready-park-link>span { color:#6a6659; }
+:root[data-theme='light'] .step-schedule { background:#fff8e8; border-color:#e8dabb; color:#785c24; }
+:root[data-theme='light'] .step-schedule small { color:#657080; }
+:root[data-theme='light'] .notice { background:#e4f3f0; border-color:#abd3c9; color:#285c52; }
+:root[data-theme='light'] .notice.warning { background:#fff3d9; border-color:#e4c585; color:#765319; }
+:root[data-theme='light'] .toast { background:#e6f5ef; color:#214c40; border-color:#96c4b2; box-shadow:0 12px 45px #173d3826; }
+:root[data-theme='light'] .tools-dialog { color:#192d43; }
+:root[data-theme='light'] .install-panel { background:#f1f6fa; border-color:#cedce7; }
+:root[data-theme='light'] :is(.personal-tasks form>input,.food-search input) { background:#fff; color:#213a51; border-color:#b8cbdc; }
+:root[data-theme='light'] :is(.personal-tasks form>input::placeholder,.food-search input::placeholder) { color:#61758a; }
+:root[data-theme='light'] :is(.preparation-task input,.food-tried-control input) { accent-color:#08765e; }
+:root[data-theme='light'] .preparation-task.task-done strong { color:#63796e; }
+:root[data-theme='light'] :is(.edit-task,.delete-task) { color:#566d82; }
+:root[data-theme='light'] .group-dot { color:#08765e; border-color:#a9c9bd; }
+:root[data-theme='light'] :is(.food-price-note,.food-recommendation,.food-icon) { background:#f7f4ea; border-color:#e2dcc9; color:#6b603f; }
+:root[data-theme='light'] .food-recommendation>span { color:#72613a; }
+:root[data-theme='light'] .food-type-filters>button.selected { background:#f7efd9; color:#755a1b; border-color:#d3bd85; }
+:root[data-theme='light'] .food-tried { border-color:#84b59a; background:#f8fcf9; }
+:root[data-theme='light'] :is(.extra-goal,.day-strategy) { background:linear-gradient(135deg,#f2edfb,#f8fbfd); border-color:#cfc3e1; }
+:root[data-theme='light'] :is(.goal-heading h2,.goal-possibilities h3,.goal-conditions h3,.goal-status-heading>span) { color:#3c3156; }
+:root[data-theme='light'] :is(.goal-heading .eyebrow,.goal-region,.goal-links>a,.day-strategy .eyebrow) { color:#70548e; }
+:root[data-theme='light'] :is(.goal-description,.goal-route,.goal-possibilities ul,.goal-conditions p,.goal-status-heading small,.day-strategy p) { color:#53647b; }
+:root[data-theme='light'] :is(.goal-icon,.goal-possibilities) { background:#ffffff90; border-color:#ded5ec; color:#70548e; }
+:root[data-theme='light'] :is(.goal-conditions,.goal-status-heading,.day-strategy a) { border-color:#dcd3e7; }
+:root[data-theme='light'] .goal-status-buttons>button.selected { background:#e8dff5; color:#5c3b80; border-color:#bca8d5; }
+:root[data-theme='light'] .goal-completed .goal-status-heading strong { color:#20694e; }
+:root[data-theme='light'] .goal-not_done .goal-status-heading strong { color:#625c4b; }
+:root[data-theme='light'] .day-strategy a { color:#08705a; }
+:root[data-theme='light'] .detail-notice { background:#edf7fc; border-color:#5087a7; }
+:root[data-theme='light'] .detail-warning { background:#fff4df; border-color:#b47c25; color:#775013; }
+/* The local illustration remains a night scene, with light text for contrast. */
+:root[data-theme='light'] :is(.featured-content,.park-hero-content) { color:#eaf0f7; }
+:root[data-theme='light'] :is(.featured-content .heading-dot,.park-hero-content .heading-dot,.featured-content .date-pill svg,.park-hero-content .date-pill svg) { color:#6be4c3; }
+:root[data-theme='light'] .featured-content .live-dot { background:#6be4c3; }
+:root[data-theme='light'] .connection.is-offline { color:#946015; }
+@media(max-width:700px) { .top-actions { gap:8px; } .breadcrumb { min-width:0; } .connection { max-width:116px; } }

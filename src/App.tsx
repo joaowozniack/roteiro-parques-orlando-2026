@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-import { ArrowDown, Users, ClipboardCheck, Utensils, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Clock3, Compass, Download, ExternalLink, Flag, House, Info, ListChecks, MapPin, Mountain, RotateCcw, Route, Settings2, ShieldCheck, SkipForward, Sparkles, Ticket, Upload, Waves, Wifi, WifiOff, X, Zap } from 'lucide-react'
+import { Sun, Moon, ArrowDown, Users, ClipboardCheck, Utensils, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Clock3, Compass, Download, ExternalLink, Flag, House, Info, ListChecks, MapPin, Mountain, RotateCcw, Route, Settings2, ShieldCheck, SkipForward, Sparkles, Ticket, Upload, Waves, Wifi, WifiOff, X, Zap } from 'lucide-react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { applyTheme, readTheme, THEME_KEY, type Theme } from './lib/theme'
 import Preparation from './components/Preparation'
 import { orlandoDay, selectFeaturedPark } from './lib/featured'
 import Dining from './components/Dining'
@@ -24,6 +25,7 @@ export default function App() {
     try { const saved = localStorage.getItem(STORAGE_KEY); return { state: saved ? parseState(JSON.parse(saved)) : initialState(), error: '' } }
     catch { return { state: initialState(), error: 'Não foi possível ler o progresso salvo. Você está usando um roteiro novo nesta aba. Importe um backup para recuperar o progresso; novas alterações tentarão salvar novamente.' } }
   })
+  const [theme, setTheme] = useState<Theme>(readTheme)
   const [state, setState] = useState(initial.state)
   const [history, setHistory] = useState<GuideState[]>([])
   const [storageError, setStorageError] = useState(initial.error)
@@ -95,6 +97,19 @@ export default function App() {
   useEffect(() => { if (tools) dialog.current?.showModal(); else dialog.current?.close() }, [tools])
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 5500); return () => clearTimeout(timer) }, [toast])
 
+  useEffect(() => { applyTheme(theme) }, [theme])
+  useEffect(() => {
+    const syncTheme = (event: StorageEvent) => { if (event.key === THEME_KEY) setTheme(event.newValue === 'light' ? 'light' : 'dark') }
+    window.addEventListener('storage', syncTheme)
+    return () => window.removeEventListener('storage', syncTheme)
+  }, [])
+  function toggleTheme() {
+    const next = theme === 'dark' ? 'light' : 'dark'
+    setTheme(next)
+    try { localStorage.setItem(THEME_KEY, next) }
+    catch { setToast('Tema alterado nesta sessão. O navegador não permitiu salvar a preferência.') }
+  }
+
   function persist(next: GuideState) {
     setState(next)
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(next)); setStorageError('') }
@@ -162,7 +177,7 @@ export default function App() {
       <div className="sidebar-bottom"><button className="text-button" onClick={() => setTools(true)}><Settings2 size={18} /> Ferramentas da viagem</button><span><ShieldCheck size={14} /> Seu progresso, no seu celular</span></div>
     </aside>
     <div className="app-shell">
-      <header className="topbar"><div className="breadcrumb"><Compass size={17} /><span>Minha viagem</span>{park && <><ChevronRight size={14} /><span>{park.shortName}</span></>}</div><div className="top-actions"><span className={`connection ${online ? '' : 'is-offline'}`} title={offlineReady ? 'Arquivos do guia disponíveis offline' : 'O cache offline será preparado no primeiro carregamento completo'}>{online ? <Wifi size={14} /> : <WifiOff size={14} />}<span>{online ? offlineReady ? 'Pronto para usar offline' : 'Online' : 'Você está offline'}</span></span><button className="icon-button" aria-label="Abrir ferramentas da viagem" onClick={() => setTools(true)}><Settings2 size={19} /></button></div></header>
+      <header className="topbar"><div className="breadcrumb"><Compass size={17} /><span>Minha viagem</span>{park && <><ChevronRight size={14} /><span>{park.shortName}</span></>}</div><div className="top-actions"><button className="icon-button theme-toggle" aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} title={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'} onClick={toggleTheme}>{theme === 'dark' ? <Sun size={19} /> : <Moon size={19} />}</button><span className={`connection ${online ? '' : 'is-offline'}`} title={offlineReady ? 'Arquivos do guia disponíveis offline' : 'O cache offline será preparado no primeiro carregamento completo'}>{online ? <Wifi size={14} /> : <WifiOff size={14} />}<span>{online ? offlineReady ? 'Pronto para usar offline' : 'Online' : 'Você está offline'}</span></span><button className="icon-button" aria-label="Abrir ferramentas da viagem" onClick={() => setTools(true)}><Settings2 size={19} /></button></div></header>
       <main id="main" tabIndex={-1}>
         {storageError && <div className="notice warning" role="alert"><Info size={18} /><span>{storageError}</span><button onClick={download}>Exportar</button></div>}
         {needRefresh && <div className="notice"><Sparkles size={18} /><span>Uma nova versão do guia está pronta.</span><button onClick={() => updateServiceWorker(true)}>Atualizar</button></div>}

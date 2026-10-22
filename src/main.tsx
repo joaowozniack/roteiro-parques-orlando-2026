@@ -6,5 +6,9 @@ import './sections.css'
 import './trip.css'
 import './goals.css'
 import './strategy.css'
+import './theme.css'
+import { applyTheme, readTheme } from './lib/theme'
+
+applyTheme(readTheme())
 
 ReactDOM.createRoot(document.getElementById('root')!).render(<React.StrictMode><App /></React.StrictMode>)
