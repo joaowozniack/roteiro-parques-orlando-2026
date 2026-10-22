@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { Sun, Moon, ArrowDown, Users, ClipboardCheck, Utensils, ArrowLeft, ArrowRight, ArrowUp, ArrowUpDown, CalendarDays, Check, CheckCheck, ChevronDown, ChevronRight, Clock3, Compass, Download, ExternalLink, Flag, House, Info, ListChecks, MapPin, Mountain, RotateCcw, Route, Settings2, ShieldCheck, SkipForward, Sparkles, Ticket, Upload, Waves, Wifi, WifiOff, X, Zap } from 'lucide-react'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { applyTheme, readTheme, THEME_KEY, type Theme } from './lib/theme'
+import TripPlanner from './components/TripPlanner'
+import { chooseTripDay, deviceDay } from './lib/travel'
 import Preparation from './components/Preparation'
 import { orlandoDay, selectFeaturedPark } from './lib/featured'
 import Dining from './components/Dining'
@@ -18,6 +20,7 @@ const parkSections: { id: ParkSection; label: string; icon: typeof Route }[] = [
   { id: 'atracoes', label: 'Atrações', icon: Route },
   { id: 'alimentacao', label: 'Alimentação', icon: Utensils },
 ]
+const TravelMark = () => <Compass size={54} strokeWidth={1.2} />
 const dateLabel = (date: string) => new Date(`${date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })
 
 export default function App() {
@@ -33,6 +36,7 @@ export default function App() {
   const [hash, setHash] = useState(location.hash)
   const [lastParkId, setLastParkId] = useState(activePark.id)
   const [today, setToday] = useState(orlandoDay)
+  const [localDay, setLocalDay] = useState(deviceDay)
   const [online, setOnline] = useState(navigator.onLine)
   const [tools, setTools] = useState(false)
   const [install, setInstall] = useState<InstallEvent | null>(null)
@@ -48,6 +52,9 @@ export default function App() {
   })
   const offlineReady = firstCacheReady || existingCacheReady
   const hashPath = hash.split('?')[0]
+  const isTrip = hashPath === '#/viagem' || hashPath.startsWith('#/viagem/')
+  const selectedTripDay = chooseTripDay(state.trip, localDay, hashPath.split('/')[2])
+  const tripHref = `#/viagem/${state.trip.selectedDay ?? selectedTripDay.id}`
   const isChecklist = hashPath === '#/preparacao' || (hashPath.startsWith('#/parque/') && hashPath.split('/')[3] === 'preparacao')
   const parkId = hashPath.startsWith('#/parque/') ? hashPath.split('/')[2] : undefined
   const section: ParkSection = parkSections.some(item => item.id === hashPath.split('/')[3]) ? hashPath.split('/')[3] as ParkSection : 'atracoes'
@@ -86,12 +93,19 @@ export default function App() {
     return () => { window.removeEventListener('hashchange', route); window.removeEventListener('online', connect); window.removeEventListener('offline', connect); window.removeEventListener('beforeinstallprompt', prompt); window.removeEventListener('storage', sync) }
   }, [])
   useEffect(() => {
-    const refreshDay = () => setToday(orlandoDay())
+    const refreshDay = () => { setToday(orlandoDay()); setLocalDay(deviceDay()) }
     const timer = window.setInterval(refreshDay, 60_000)
     window.addEventListener('focus', refreshDay)
     document.addEventListener('visibilitychange', refreshDay)
     return () => { clearInterval(timer); window.removeEventListener('focus', refreshDay); document.removeEventListener('visibilitychange', refreshDay) }
   }, [])
+  useEffect(() => {
+    if (!isTrip) return
+    const route = `#/viagem/${selectedTripDay.id}`
+    if (hashPath !== route) { window.history.replaceState(null, '', route); setHash(route) }
+    if (state.trip.selectedDay !== selectedTripDay.id || state.trip.viewedOn !== localDay) persist({ ...state, trip: { ...state.trip, selectedDay: selectedTripDay.id, viewedOn: localDay } })
+  }, [isTrip, selectedTripDay.id, localDay])
+  useEffect(() => { if (hashPath === '#/parques') document.getElementById('meus-parques')?.scrollIntoView({ block: 'start' }) }, [hashPath])
   useEffect(() => { if (park && !isChecklist) setLastParkId(park.id) }, [park, isChecklist])
   useEffect(() => { if (isChecklist && hashPath !== '#/preparacao') { window.history.replaceState(null, '', '#/preparacao'); setHash('#/preparacao') } }, [isChecklist, hashPath])
   useEffect(() => { if (tools) dialog.current?.showModal(); else dialog.current?.close() }, [tools])
@@ -156,7 +170,7 @@ export default function App() {
   }
   async function upload(file?: File) {
     if (!file) return
-    try { if (file.size > 1_000_000) throw new Error('Arquivo muito grande. O limite é 1 MB.'); const next = importState(await file.text()); change(next, 'Backup importado. Você pode desfazer esta alteração.'); setTools(false) }
+    try { if (file.size > 5_000_000) throw new Error('Arquivo muito grande. O limite é 5 MB.'); const next = importState(await file.text()); change(next, 'Backup importado. Você pode desfazer esta alteração.'); setTools(false) }
     catch (e) { setToast(e instanceof Error ? e.message : 'Não foi possível importar o arquivo.') }
     if (input.current) input.current.value = ''
   }
@@ -168,7 +182,9 @@ export default function App() {
       <a className="brand" href="#/" aria-label="Orlando 2026, início"><span className="brand-mark"><Compass size={27} /></span><span>orlando<span className="brand-year">2026 / GUIA DE VIAGEM</span></span></a>
       <div className="nav-caption">SUA PRÓXIMA AVENTURA</div>
       <nav aria-label="Navegação principal">
-        <a className={!park && !isChecklist ? 'active' : ''} href="#/"><House size={19} /> Minha viagem</a>
+        <a className={!park && !isChecklist && !isTrip ? 'active' : ''} href="#/"><House size={19} /> Minha viagem</a>
+        <a className={isTrip ? 'active' : ''} href="#/viagem"><CalendarDays size={19} /> Roteiro da Viagem</a>
+        <a href="#/parques"><Ticket size={19} /> Meus Parques</a>
         <a className={park && !isChecklist ? 'active' : ''} href={`#/parque/${currentPark.id}`} onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}><Route size={19} /> Meu roteiro <span className="nav-dot" /></a>
         <a className={isChecklist ? 'active' : ''} href="#/preparacao"><ClipboardCheck size={19} /> Checklist geral</a>
         <button onClick={goLater}><RotateCcw size={19} /> Voltar depois {laterCount > 0 && <span className="count">{laterCount}</span>}</button>
@@ -181,11 +197,11 @@ export default function App() {
       <main id="main" tabIndex={-1}>
         {storageError && <div className="notice warning" role="alert"><Info size={18} /><span>{storageError}</span><button onClick={download}>Exportar</button></div>}
         {needRefresh && <div className="notice"><Sparkles size={18} /><span>Uma nova versão do guia está pronta.</span><button onClick={() => updateServiceWorker(true)}>Atualizar</button></div>}
-        {isChecklist ? <>
+        {isTrip ? <TripPlanner day={selectedTripDay} today={localDay} trip={state.trip} onSelect={day => { location.hash = `#/viagem/${day}` }} onChange={(day, progress, message) => change({ ...state, trip: { ...state.trip, days: { ...state.trip.days, [day]: progress } } }, message)} /> : isChecklist ? <>
           <a className="back-link" href="#/"><ArrowLeft size={16} /> Minha viagem</a>
           <Preparation checked={checklist.checked} customTasks={checklist.customTasks} onToggle={togglePreparation} onAdd={addPersonalTask} onEdit={editPersonalTask} onDelete={deletePersonalTask} onReset={() => change({ ...state, globalChecklist: { ...checklist, checked: {} } }, 'Checklist geral reiniciado. Você pode desfazer.')} />
         </> : park ? <>
-          <a className="back-link" href="#/"><ArrowLeft size={16} /> Todos os parques</a>
+          <div className="park-back-links"><a className="back-link" href="#/"><ArrowLeft size={16} /> Todos os parques</a><a className="back-link" href={tripHref}><CalendarDays size={15} /> Voltar ao Roteiro da Viagem</a></div>
           <section className={`park-hero ${park.accent}`}>
             <img className="park-hero-art" src={`${import.meta.env.BASE_URL}island.svg`} alt="" />
             <div className="park-hero-content"><span className="eyebrow"><span className="live-dot" /> SEU DIA DE AVENTURA</span><h1>{park.id === activePark.id ? <>Islands of<br />Adventure</> : park.shortName}<span className="heading-dot">.</span></h1><p>{park.resort}</p>{park.date && <span className="date-pill"><CalendarDays size={15} /> {dateLabel(park.date)}</span>}</div>
@@ -224,8 +240,10 @@ export default function App() {
           </div>
         </> : <>
           <section className="welcome"><span className="eyebrow"><span className="live-dot" /> A CONTAGEM REGRESSIVA JÁ COMEÇOU</span><h1>Minha Viagem<br />Orlando <span className="outline-year">2026<span className="heading-dot">.</span></span></h1><p>Grandes aventuras. Um roteiro no bolso.</p><div className="trip-meta"><span><CalendarDays size={16} /> Outubro e novembro de 2026</span><span><MapPin size={16} /> Orlando, Flórida</span></div><div className="welcome-stamp"><Compass size={65} strokeWidth={1} /><span>PRÓXIMA PARADA<br /><strong>MEMÓRIAS INCRÍVEIS</strong></span></div></section>
+          <section className="home-hub" aria-label="Áreas da viagem"><a className="travel-entry" href="#/viagem"><span className="travel-entry-art"><TravelMark /></span><div><span className="eyebrow">SEU COMPANHEIRO TODOS OS DIAS</span><h2>Roteiro da Viagem</h2><p>De Curitiba a Orlando e Miami. Voos, passeios, compras e dias de parque em um só lugar.</p><span className="travel-entry-dates"><CalendarDays size={15} /> 27/10 a 09/11/2026 · 14 dias</span><span className="travel-entry-cta">Abrir roteiro da viagem <ArrowRight size={17} /></span></div></a><a className="parks-entry" href="#/parques"><Ticket size={25} /><div><span className="eyebrow">QUATRO DIAS DE AVENTURA</span><h2>Meus Parques</h2><p>Atrações, alimentação e progresso de cada parque.</p></div><ArrowRight size={20} /></a>
           <a className="checklist-entry" href="#/preparacao"><span className="checklist-entry-icon"><ClipboardCheck size={27} /></span><div><span className="eyebrow">ANTES DO PRÓXIMO DIA DE PARQUE</span><h2>Checklist geral de preparação</h2><p>{checklistCompleted} de {checklistTasks.length} tarefas concluídas · compartilhado entre os quatro parques</p></div><ArrowRight size={22} /></a>
-          <section className="parks-section"><div className="section-heading"><div><span className="eyebrow">ESCOLHA SUA AVENTURA</span><h2>Seus parques<span className="inline-count">04</span></h2></div><span className="muted desktop-only">Uma viagem. Mundos para descobrir.</span></div>
+          </section>
+          <section className="parks-section" id="meus-parques"><div className="section-heading"><div><span className="eyebrow">ESCOLHA SUA AVENTURA</span><h2>Meus Parques<span className="inline-count">04</span></h2></div><span className="muted desktop-only">Uma viagem. Mundos para descobrir.</span></div>
             <a className={`featured-park ${featuredPark.accent}`} href={`#/parque/${featuredPark.id}`}><img src={`${import.meta.env.BASE_URL}island.svg`} alt="Ilustração de uma ilha com castelo, montanha-russa e palmeiras" /><div className="featured-overlay" /><div className="featured-content"><span className="ready-label"><span className="live-dot" /> {featuredProgress.percent === 100 ? 'ROTEIRO CONCLUÍDO' : 'ROTEIRO PRONTO'}</span><span className="resort-label">{featuredPark.resort}</span><h2>{featuredPark.id === activePark.id ? <>Islands of<br />Adventure</> : featuredPark.shortName}</h2><p>{featuredPark.description}</p>{featuredPark.date && <div className="featured-date"><CalendarDays size={16} /><strong>{new Date(`${featuredPark.date}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit' })} {new Date(`${featuredPark.date}T12:00:00`).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '').toLocaleUpperCase('pt-BR')}</strong><span>{new Date(`${featuredPark.date}T12:00:00`).toLocaleDateString('pt-BR', { weekday: 'long' })} · {featuredPark.date.slice(0, 4)}</span></div>}<div className="featured-footer"><span className="primary">{featuredProgress.percent === 100 ? 'Rever roteiro' : featuredProgress.completed ? 'Continuar aventura' : 'Explorar roteiro'}<ArrowRight size={17} /></span><span className="featured-step-count">{featuredProgress.total} etapas no progresso <span>·</span> {featuredProgress.percent}% concluído</span></div></div><span className="art-caption">A AVENTURA ESTÁ LOGO ALI ↗</span></a>
             <div className="upcoming-grid">{parks.filter(p => p.id !== featuredPark.id).map(p => <article className={`upcoming-park ${p.accent} ${p.steps.length ? 'park-ready' : ''}`} key={p.id}><div className="upcoming-top"><span className="park-symbol">{p.id === 'islands-of-adventure' ? <Mountain size={25} /> : p.id === 'magic-kingdom' ? <Flag size={25} /> : p.id === 'epic-universe' ? <Sparkles size={25} /> : <Ticket size={25} />}</span><span className="soon-label">{p.steps.length ? 'Roteiro pronto' : 'Aguardando cadastro'}</span></div><span className="resort-label">{p.resort}</span><h3>{p.steps.length ? <a href={`#/parque/${p.id}`}>{p.shortName} <ArrowRight size={14} /></a> : p.shortName}</h3><p>{p.description}</p><div className="not-planned"><CalendarDays size={14} /> {p.steps.length && p.date ? dateLabel(p.date) : 'Roteiro ainda não cadastrado'}</div>{p.steps.length > 0 && <a className="ready-park-link" href={`#/parque/${p.id}`}>Explorar roteiro <ArrowRight size={14} /><span>{itinerarySummary(p, state.parks[p.id]).percent}% concluído</span></a>}</article>)}</div>
           </section>
@@ -234,9 +252,9 @@ export default function App() {
         <footer className="footer"><span><Compass size={14} /> Feito para aproveitar o caminho.</span><span>Orlando 2026 <span className="footer-dot">·</span> Seu guia de bolso</span></footer>
       </main>
     </div>
-    <nav className="mobile-nav" aria-label="Navegação móvel"><a href="#/" className={!park && !isChecklist ? 'active' : ''}><House size={20} /><span>Viagem</span></a><a href={`#/parque/${currentPark.id}`} className={park && !isChecklist ? 'active' : ''} onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}><Route size={20} /><span>Roteiro</span></a><a href="#/preparacao" className={isChecklist ? 'active' : ''}><ClipboardCheck size={20} /><span>Checklist</span></a><button onClick={goLater}><RotateCcw size={20} /><span>Voltar depois{laterCount ? ` (${laterCount})` : ''}</span></button><button onClick={() => setTools(true)}><Settings2 size={20} /><span>Ferramentas</span></button></nav>
+    <nav className="mobile-nav" aria-label="Navegação móvel"><a href="#/" className={!park && !isChecklist && !isTrip ? 'active' : ''}><House size={20} /><span>Viagem</span></a><a href="#/viagem" className={isTrip ? 'active' : ''} aria-label="Roteiro da Viagem"><CalendarDays size={20} /><span>Agenda</span></a><a href={`#/parque/${currentPark.id}`} className={park && !isChecklist ? 'active' : ''} onClick={() => { setStatusFilter('all'); setPriorityFilter('all') }}><Route size={20} /><span>Roteiro</span></a><a href="#/preparacao" className={isChecklist ? 'active' : ''}><ClipboardCheck size={20} /><span>Checklist</span></a><button onClick={goLater}><RotateCcw size={20} /><span>Voltar depois{laterCount ? ` (${laterCount})` : ''}</span></button><button onClick={() => setTools(true)}><Settings2 size={20} /><span>Ferramentas</span></button></nav>
     <div className={`toast ${toast ? 'visible' : ''}`} role="status" aria-live="polite"><span>{toast}</span>{history.length > 0 && <button onClick={undo}>Desfazer</button>}<button className="toast-close" aria-label="Fechar aviso" onClick={() => setToast('')}><X size={16} /></button></div>
-    <dialog ref={dialog} className="tools-dialog" onClose={() => setTools(false)} onClick={e => { if (e.target === e.currentTarget) setTools(false) }} aria-labelledby="tools-title"><div className="dialog-heading"><div><span className="eyebrow">TUDO PRONTO PARA IR</span><h2 id="tools-title">Ferramentas da viagem</h2></div><button className="icon-button" aria-label="Fechar ferramentas" onClick={() => setTools(false)}><X /></button></div><p>Seu progresso fica neste navegador. Exporte um arquivo para guardar uma cópia ou levar para outro celular.</p><div className="tool-grid"><button className="secondary" onClick={download}><Download size={19} /> Exportar roteiro e progresso</button><button className="secondary" onClick={() => input.current?.click()}><Upload size={19} /> Importar arquivo JSON</button><input ref={input} type="file" accept=".json,application/json" hidden onChange={e => upload(e.target.files?.[0])} /></div><p className="small muted">A importação substitui o progresso atual e permite desfazer. Não há sincronização automática entre celulares. O arquivo inclui o roteiro de referência; a importação restaura o progresso das atrações, checklist, tarefas pessoais e alimentação dos parques cadastrados nesta versão.</p><div className="install-panel"><Download size={22} /><h3>Adicione à tela inicial</h3>{install ? <button className="primary" onClick={async () => { await install.prompt(); const choice = await install.userChoice; if (choice.outcome === 'accepted') setToast('Guia adicionado ao seu celular.'); setInstall(null) }}>Instalar guia <ArrowRight size={16} /></button> : <p>No iPhone, abra no Safari e toque em <strong>Compartilhar → Adicionar à Tela de Início</strong>. No Android, use <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong> no menu do Chrome.</p>}<span className="offline-status">{offlineReady ? <Check size={15} /> : <Info size={15} />}{offlineReady ? 'Arquivos disponíveis para uso offline.' : 'Aguarde o primeiro carregamento completo online para preparar o cache.'}</span></div><a className="official-link" href={currentPark.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">Aplicativo oficial do parque <ExternalLink size={15} /></a></dialog>
+    <dialog ref={dialog} className="tools-dialog" onClose={() => setTools(false)} onClick={e => { if (e.target === e.currentTarget) setTools(false) }} aria-labelledby="tools-title"><div className="dialog-heading"><div><span className="eyebrow">TUDO PRONTO PARA IR</span><h2 id="tools-title">Ferramentas da viagem</h2></div><button className="icon-button" aria-label="Fechar ferramentas" onClick={() => setTools(false)}><X /></button></div><p>Seu progresso fica neste navegador. Exporte um arquivo para guardar uma cópia ou levar para outro celular.</p><div className="tool-grid"><button className="secondary" onClick={download}><Download size={19} /> Exportar roteiro e progresso</button><button className="secondary" onClick={() => input.current?.click()}><Upload size={19} /> Importar arquivo JSON</button><input ref={input} type="file" accept=".json,application/json" hidden onChange={e => upload(e.target.files?.[0])} /></div><p className="small muted">A importação substitui o progresso atual e permite desfazer. Não há sincronização automática entre celulares. O arquivo inclui o roteiro de referência; a importação restaura o progresso das atrações, checklist, tarefas pessoais alimentação dos parques e o roteiro diário da viagem cadastrados nesta versão.</p><div className="install-panel"><Download size={22} /><h3>Adicione à tela inicial</h3>{install ? <button className="primary" onClick={async () => { await install.prompt(); const choice = await install.userChoice; if (choice.outcome === 'accepted') setToast('Guia adicionado ao seu celular.'); setInstall(null) }}>Instalar guia <ArrowRight size={16} /></button> : <p>No iPhone, abra no Safari e toque em <strong>Compartilhar → Adicionar à Tela de Início</strong>. No Android, use <strong>Instalar app</strong> ou <strong>Adicionar à tela inicial</strong> no menu do Chrome.</p>}<span className="offline-status">{offlineReady ? <Check size={15} /> : <Info size={15} />}{offlineReady ? 'Arquivos disponíveis para uso offline.' : 'Aguarde o primeiro carregamento completo online para preparar o cache.'}</span></div><a className="official-link" href={currentPark.officialUrl ?? UNIVERSAL_URL} target="_blank" rel="noreferrer">Aplicativo oficial do parque <ExternalLink size={15} /></a></dialog>
   </>
 }
 

@@ -1,3 +1,5 @@
+import { tripDays } from '../data/travel'
+import { parseTripProgress } from './travel'
 import { parks } from '../data/parks'
 import { preparationGroups } from '../data/preparation'
 import type { ExtraGoalStatus, GuideState, Park, ParkProgress, Priority, StepStatus } from '../types'
@@ -11,6 +13,7 @@ export function initialProgress(park: Park): ParkProgress {
 export function initialState(): GuideState {
   return {
     version: 1,
+    trip: { days: {} },
     parks: Object.fromEntries(parks.map(p => [p.id, initialProgress(p)])),
     preparation: Object.fromEntries(parks.map(p => [p.id, {}])),
     dining: Object.fromEntries(parks.map(p => [p.id, {}])),
@@ -106,17 +109,18 @@ export function parseState(value: unknown): GuideState {
       }
     }
   }
+  result.trip = parseTripProgress(value.trip)
   return result
 }
 export function importState(text: string): GuideState {
-  if (text.length > 1_000_000) throw new Error('Arquivo muito grande. O limite é 1 MB.')
+  if (text.length > 5_000_000) throw new Error('Arquivo muito grande. O limite é 5 MB.')
   let data: unknown
   try { data = JSON.parse(text) } catch { throw new Error('Não foi possível ler o JSON. Verifique o arquivo.') }
   if (!object(data) || data.app !== 'orlando-pocket-guide') throw new Error('Escolha um arquivo exportado pelo guia Orlando 2026.')
   return parseState(data.progress)
 }
 export function exportState(state: GuideState): string {
-  return JSON.stringify({ app: 'orlando-pocket-guide', exportedAt: new Date().toISOString(), itinerary: parks, preparation: preparationGroups, progress: state }, null, 2)
+  return JSON.stringify({ app: 'orlando-pocket-guide', exportedAt: new Date().toISOString(), itinerary: parks, tripItinerary: tripDays, preparation: preparationGroups, progress: state }, null, 2)
 }
 export function moveStep(progress: ParkProgress, id: string, direction: -1 | 1): ParkProgress {
   const order = [...progress.order], index = order.indexOf(id), target = index + direction

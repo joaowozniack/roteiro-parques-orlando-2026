@@ -7,6 +7,7 @@ import './trip.css'
 import './goals.css'
 import './strategy.css'
 import './theme.css'
+import './travel.css'
 import { applyTheme, readTheme } from './lib/theme'
 
 applyTheme(readTheme())

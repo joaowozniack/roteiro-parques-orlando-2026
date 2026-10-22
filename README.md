@@ -38,6 +38,26 @@ Se a instalação no Actions parecer parada, consulte a etapa **Instalar depend�
 
 No celular, conecte-se à internet e toque em **Atualizar** quando o guia avisar que a nova versão está pronta. O progresso continua no mesmo armazenamento; não é necessário limpar os dados do navegador.
 
+## Roteiro da Viagem — Orlando e Miami
+
+A página inicial oferece **Roteiro da Viagem**, **Meus Parques** e **Checklist Geral**. A agenda tem destaque na home, um atalho **Agenda** no celular e um item na navegação lateral. Meus Parques mantém a ordem por datas e o destaque automático já existente.
+
+Em `#/viagem`, o cronograma vai de **27/10 a 09/11/2026**, incluindo o retorno ao Brasil. São 14 dias e 45 atividades originais, separadas dos roteiros detalhados. O seletor horizontal, os botões de dia anterior/próximo e a visão vertical de todos os dias levam a rotas como `#/viagem/2026-11-03`. Só as atividades do dia selecionado são renderizadas em detalhe.
+
+A seleção inicial usa a **data local do dispositivo** (diferente do calendário de Orlando usado no destaque dos parques). Dentro da viagem, o dia atual aparece em destaque e há um botão **Ir para hoje**. A navegação manual no mesmo dia é respeitada; fora do período, o guia recupera o último dia selecionado ou abre 27/10. Voltar do parque pelo link **Voltar ao Roteiro da Viagem** recupera o dia selecionado. Nenhuma atividade é concluída automaticamente.
+
+As atividades têm categoria, horário/localização quando fornecidos, detalhes recolhíveis e estados **Pendente**, **Concluída** e **Pulada**. É possível editar inclusive atividades originais, acrescentar até 100 atividades por dia, inserir observações pessoais, reordenar manualmente e excluir atividades personalizadas. Originais podem ser ocultadas/restauradas e ter seu texto original recuperado. As alterações permitem desfazer durante a sessão. Um horário editado não altera automaticamente a ordem.
+
+O percentual diário considera as atividades visíveis e não opcionais; atividades puladas continuam na contagem. **Hogwarts Express** é opcional e mantém seu objetivo extra independente no Studios. **Port Orleans** é opcional, condicionado à disposição do grupo. Marcar uma visita ao parque na agenda não marca atrações, alimentação, checklist ou objetivos extras.
+
+Os quatro dias de parque usam links internos para os IDs existentes. Horários desconhecidos não foram preenchidos. O encontro de 27/10 às 15h e o jogo de 07/11 às 16h são referências do planejamento fornecido, em horário local; o jogo continua sujeito a confirmação, sem ingresso presumido comprado e com participantes a definir. Não há nome inventado para hotel ou bar country.
+
+### Armazenamento e backup da agenda
+
+O domínio `trip` é adicionado à mesma chave de progresso v1. Snapshots antigos sem esse domínio recebem apenas uma agenda sem personalizações. São guardados o dia selecionado, os estados, as diferenças dos textos originais, as atividades pessoais, a ordem e as atividades ocultas; o roteiro de referência permanece em `src/data/travel.ts`.
+
+A exportação/importação JSON inclui a agenda e preserva os outros domínios. O limite do arquivo passou a **5 MB** para acomodar as observações e atividades novas; o conteúdo é validado antes da importação. Os dados de referência no arquivo não substituem o cadastro do aplicativo. A funcionalidade reutiliza o PWA e funciona offline após o cache inicial completo, sem serviços externos ou dependências adicionais.
+
 ## Tema claro e escuro
 
 O botão de sol/lua no cabeçalho alterna entre os modos claro e escuro em qualquer tela. O modo escuro original continua sendo o padrão. A preferência é salva separadamente em `orlando-guide:/CAMINHO/:theme:v1`, sem alterar o progresso, e permanece disponível offline. As capas ilustradas mantêm a cena noturna e o texto claro para preservar o contraste. A escolha de tema é local e não faz parte do backup do roteiro.
@@ -121,7 +141,7 @@ A migração é aditiva:
 - Os campos antigos `preparation` e `customTasks` por parque são preservados no snapshot para compatibilidade e backup, incluindo os itens antigos que não se aplicam ao checklist geral. Não são mais editados pela interface.
 - A presença de `globalChecklist` impede reaplicar a migração após reiniciar ou editar o checklist.
 
-**Ferramentas** exporta/importa o roteiro e todo o progresso em JSON, incluindo o checklist geral e os objetivos extras. Backups de versões anteriores continuam aceitos e são migrados. A importação valida o conteúdo antes de substituir o estado e permite desfazer. O arquivo de referência não altera os dados do roteiro nem executa HTML ou código externo.
+**Ferramentas** exporta/importa o roteiro e todo o progresso em JSON, incluindo o checklist geral, os objetivos extras e o cronograma diário. Backups de versões anteriores continuam aceitos e são migrados. A importação valida o conteúdo antes de substituir o estado e permite desfazer. O arquivo de referência não altera os dados do roteiro nem executa HTML ou código externo.
 
 Não há sincronização entre celulares. Exporte em um dispositivo e importe em outro. Limpar o armazenamento ou mudar a origem/caminho da instalação pode isolar ou remover o progresso.
 
@@ -133,6 +153,9 @@ No iPhone: Safari → Compartilhar → Adicionar à Tela de Início. No Android:
 
 ## Estrutura
 
+- `src/data/travel.ts`: cronograma diário original, sem duplicar as atrações dos parques.
+- `src/components/TripPlanner.tsx` e `src/travel.css`: agenda, navegação entre dias, linha do tempo e editor nos dois temas.
+- `src/lib/travel.ts`: seleção por data local, validação, personalizações e progresso diário.
 - `src/data/parks.ts`: cadastro dos parques e roteiro original do Islands.
 - `src/data/epic-universe.ts`: roteiro, estratégia, complementares e alimentação do Epic.
 - `src/strategy.css`: estratégia do dia, avisos e apresentação indisponível.
@@ -167,6 +190,6 @@ Remove-Item Env:VITE_BASE_PATH
 
 Alternativamente, instale o Chromium de teste com `npx playwright install chromium` e omita `PLAYWRIGHT_CHANNEL`. O workflow executa testes unitários e build; a suíte Playwright é uma verificação local adicional.
 
-Os testes cobrem migração, preservação de dados, edição/reset do checklist, independência dos parques, pausa e TRON no progresso, Starlight sem horário, Buzz complementar, Studios na ordem solicitada, Bourne sem horário fixo, Hogwarts como meta independente, migração de objetivos e preços a confirmar, filtros/pesquisa, backup, falhas de armazenamento, navegação offline e layouts de 320, 390, 768 e 1440 px. Capturas ficam em `test-results/` (ignorado no Git). A verificação usa Chrome com emulação de toque e viewport; instalação em aparelhos físicos e deploy real dependem do ambiente de destino.
+Os testes cobrem a agenda de 14 dias, edição/ocultação/restauração de atividades, anotações, ordenação, escolha do dia local, links de ida e volta dos quatro parques, independência do progresso diário, backup e modo offline, além de migração, preservação de dados, edição/reset do checklist, independência dos parques, pausa e TRON no progresso, Starlight sem horário, Buzz complementar, Studios na ordem solicitada, Bourne sem horário fixo, Hogwarts como meta independente, migração de objetivos e preços a confirmar, filtros/pesquisa, backup, falhas de armazenamento, navegação offline e layouts de 320, 390, 768 e 1440 px. Capturas ficam em `test-results/` (ignorado no Git). A verificação usa Chrome com emulação de toque e viewport; instalação em aparelhos físicos e deploy real dependem do ambiente de destino.
 
 Os ícones PNG já estão incluídos e podem ser regenerados sem bibliotecas extras com `node scripts/generate-icons.mjs`. A ilustração SVG é local.
