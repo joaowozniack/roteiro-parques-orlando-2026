@@ -34,6 +34,8 @@ O workflow **Publicar guia no GitHub Pages** executa instalação pelo lockfile,
 
 Para uma instalação nova: em Settings → Pages → Build and deployment → Source, selecione **GitHub Actions**. O `base` do Vite é detectado por `GITHUB_REPOSITORY`; repositórios `USUARIO.github.io` usam `/`. Um domínio próprio ou outro caminho pode definir `VITE_BASE_PATH`, sempre com barras nas extremidades.
 
+Se a instalação no Actions parecer parada, consulte a etapa **Instalar dependências**: ela mostra versões, downloads e scripts, usa o cache npm e limita cada requisição a 60 segundos, com duas novas tentativas. A etapa termina após no máximo dez minutos. Auditoria e mensagens de financiamento não são executadas durante a publicação; uma auditoria pode ser feita separadamente com `npm audit`. O aviso `deprecated glob@11.1.0` vem da dependência indireta `vite-plugin-pwa → workbox-build → glob` e não interrompe por si só o `npm ci`. Não substitua dependências por versões maiores à força apenas para ocultar esse aviso. Para diagnosticar uma falha, consulte as linhas finais, o código de saída e possíveis erros de rede. Se uma execução antiga estiver presa, cancele-a antes de enviar o novo commit, pois o workflow serializa as publicações. Reexecutar o job antigo continua usando o workflow do commit antigo.
+
 No celular, conecte-se à internet e toque em **Atualizar** quando o guia avisar que a nova versão está pronta. O progresso continua no mesmo armazenamento; não é necessário limpar os dados do navegador.
 
 ## Tema claro e escuro
